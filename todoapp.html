@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>오늘의 할 일</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1f2430;--muted:#7b8190;--line:#e3e6ec;--accent:#3b6cf6;--danger:#d64545;--study:#e8eefe;--studyt:#2a50c8;--life:#e6f6ec;--lifet:#1d7a43;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181f;--card:#1e222b;--text:#eceff5;--muted:#8d95a6;--line:#2c313c;--accent:#6c93ff;--danger:#ff7777;--study:#27345e;--studyt:#a9c0ff;--life:#1f3d2c;--lifet:#8fe0b0}}
+:root[data-theme="dark"]{--bg:#15181f;--card:#1e222b;--text:#eceff5;--muted:#8d95a6;--line:#2c313c;--accent:#6c93ff;--danger:#ff7777;--study:#27345e;--studyt:#a9c0ff;--life:#1f3d2c;--lifet:#8fe0b0}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;line-height:1.5}
+main{max-width:560px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.5rem;margin:0 0 12px}
+h2{font-size:1rem;margin:20px 0 8px;display:flex;align-items:center;gap:8px}
+h2 small{color:var(--muted);font-weight:400}
+.row{display:flex;gap:8px}
+input,select,button{font:inherit}
+input[type=text],input[type=date],select{padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);min-width:0}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+button{cursor:pointer;border:0;border-radius:10px}
+.datebar{align-items:center;margin-bottom:12px}
+.datebar input{flex:1}
+.nav{background:var(--card);border:1px solid var(--line);color:var(--text);padding:9px 13px}
+.today{background:var(--card);border:1px solid var(--line);color:var(--accent);padding:9px 12px;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:1.4rem}
+.stat span{color:var(--muted);font-size:.8rem}
+form{margin-bottom:6px}
+form input[type=text]{flex:1}
+.add{background:var(--accent);color:#fff;padding:0 18px;font-weight:600}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+li{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+li input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.t{flex:1;min-width:0;word-break:break-word}
+li.done .t{text-decoration:line-through;color:var(--muted)}
+.tag{font-size:.72rem;padding:2px 8px;border-radius:99px;flex:none;font-weight:600}
+.tag.study{background:var(--study);color:var(--studyt)}
+.tag.life{background:var(--life);color:var(--lifet)}
+li input[type=text]{padding:7px 9px;flex:1}
+li select{padding:7px}
+.sm{background:transparent;color:var(--muted);padding:6px 9px;font-size:.85rem;border:1px solid var(--line)}
+.sm:hover{color:var(--text)}
+.sm.del:hover{color:var(--danger);border-color:var(--danger)}
+.sm.ok{color:var(--accent);border-color:var(--accent)}
+.empty{color:var(--muted);text-align:center;padding:14px 0;font-size:.9rem}
+@media (max-width:420px){li{flex-wrap:wrap}.t{flex-basis:60%}}
+</style>
+</head>
+<body>
+<main>
+  <h1>오늘의 할 일</h1>
+  <div class="row datebar">
+    <button class="nav" id="prev" aria-label="이전 날">‹</button>
+    <input type="date" id="date" aria-label="날짜 선택">
+    <button class="nav" id="next" aria-label="다음 날">›</button>
+    <button class="today" id="today">오늘</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="nAll">0</b><span>전체</span></div>
+    <div class="stat"><b id="nDone">0</b><span>완료</span></div>
+    <div class="stat"><b id="nLeft">0</b><span>남은 일</span></div>
+  </div>
+  <form id="f" class="row">
+    <select id="cat" aria-label="카테고리"><option value="study">학업</option><option value="life">일상</option></select>
+    <input type="text" id="in" placeholder="할 일을 입력하세요" maxlength="100" autocomplete="off">
+    <button class="add" type="submit">추가</button>
+  </form>
+  <h2>진행 중 <small id="cTodo"></small></h2>
+  <ul id="todo"></ul>
+  <h2>완료 <small id="cDone"></small></h2>
+  <ul id="done"></ul>
+</main>
+<script>
+var CAT={study:'학업',life:'일상'};
+var todos=[],nextId=1,editing=null;
+var dateEl=document.getElementById('date'),input=document.getElementById('in'),catEl=document.getElementById('cat');
+
+function ymd(d){var m=d.getMonth()+1,x=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(x<10?'0':'')+x;}
+function shift(n){var p=dateEl.value.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]+n);dateEl.value=ymd(d);render();}
+dateEl.value=ymd(new Date());
+
+function btn(label,cls,fn){var b=document.createElement('button');b.type='button';b.className=cls;b.textContent=label;b.onclick=fn;return b;}
+
+function item(t){
+  var li=document.createElement('li');
+  if(t.done)li.className='done';
+  var cb=document.createElement('input');
+  cb.type='checkbox';cb.checked=t.done;cb.setAttribute('aria-label','완료 체크');
+  cb.onchange=function(){t.done=cb.checked;render();};
+  li.appendChild(cb);
+  if(editing===t.id){
+    var sel=document.createElement('select');
+    sel.innerHTML='<option value="study">학업</option><option value="life">일상</option>';sel.value=t.cat;
+    var ed=document.createElement('input');ed.type='text';ed.value=t.text;ed.maxLength=100;
+    var go=function(){var v=ed.value.trim();if(v)t.text=v;t.cat=sel.value;editing=null;render();};
+    ed.onkeydown=function(e){if(e.key==='Enter')go();if(e.key==='Escape'){editing=null;render();}};
+    li.appendChild(sel);li.appendChild(ed);
+    li.appendChild(btn('저장','sm ok',go));
+    li.appendChild(btn('취소','sm',function(){editing=null;render();}));
+    setTimeout(function(){ed.focus();},0);
+  }else{
+    var tag=document.createElement('span');tag.className='tag '+t.cat;tag.textContent=CAT[t.cat];
+    var sp=document.createElement('span');sp.className='t';sp.textContent=t.text;
+    li.appendChild(tag);li.appendChild(sp);
+    li.appendChild(btn('수정','sm',function(){editing=t.id;render();}));
+    li.appendChild(btn('삭제','sm del',function(){todos=todos.filter(function(x){return x.id!==t.id;});render();}));
+  }
+  return li;
+}
+
+function fill(ul,arr,msg){
+  ul.innerHTML='';
+  if(!arr.length){var e=document.createElement('li');e.className='empty';e.style.cssText='display:block;border:0;background:none';e.textContent=msg;ul.appendChild(e);return;}
+  arr.forEach(function(t){ul.appendChild(item(t));});
+}
+
+function render(){
+  var d=dateEl.value;
+  var day=todos.filter(function(t){return t.date===d;});
+  var todo=day.filter(function(t){return !t.done;});
+  var done=day.filter(function(t){return t.done;});
+  document.getElementById('nAll').textContent=day.length;
+  document.getElementById('nDone').textContent=done.length;
+  document.getElementById('nLeft').textContent=todo.length;
+  document.getElementById('cTodo').textContent=todo.length+'개';
+  document.getElementById('cDone').textContent=done.length+'개';
+  fill(document.getElementById('todo'),todo,d===ymd(new Date())?'남은 할 일이 없어요.':'이 날짜에 남은 할 일이 없어요.');
+  fill(document.getElementById('done'),done,'아직 완료한 일이 없어요.');
+}
+
+document.getElementById('f').onsubmit=function(e){
+  e.preventDefault();
+  var v=input.value.trim();if(!v||!dateEl.value)return;
+  todos.push({id:nextId++,text:v,cat:catEl.value,date:dateEl.value,done:false});
+  input.value='';render();input.focus();
+};
+dateEl.onchange=function(){if(!dateEl.value)dateEl.value=ymd(new Date());render();};
+document.getElementById('prev').onclick=function(){shift(-1);};
+document.getElementById('next').onclick=function(){shift(1);};
+document.getElementById('today').onclick=function(){dateEl.value=ymd(new Date());render();};
+render();
+</script>
+</body>
+</html>
