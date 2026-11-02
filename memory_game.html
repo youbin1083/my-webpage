@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>신나는 카드 짝 맞추기 학습 게임 🐾📚</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Gaegu & Jua for child-friendly font) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        jua: ['Jua', 'sans-serif'],
+                        nunito: ['Nunito', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            yellow: '#FFDE59',
+                            orange: '#FF914D',
+                            pink: '#FF66C4',
+                            purple: '#8C52FF',
+                            blue: '#5CE1E6',
+                            green: '#7ED957',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            background: linear-gradient(135deg, #a8edd9 0%, #fed6e3 100%);
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 3D Card Flip Styling */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .card-inner.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 1rem;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,255,255,0.8);
+        }
+
+        .card-front {
+            background: linear-gradient(145deg, #60a5fa, #3b82f6);
+            border: 4px solid #ffffff;
+        }
+
+        .card-front::after {
+            content: "🐾";
+            font-size: 2rem;
+            opacity: 0.35;
+        }
+
+        .card-back {
+            background: #ffffff;
+            border: 4px solid #facc15;
+            transform: rotateY(180deg);
+        }
+
+        /* Learning Card Variant Styles */
+        .card-back.theme-learning {
+            background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+            border: 4px solid #4ade80;
+        }
+
+        /* Matched Pulse Animation */
+        @keyframes pulse-success {
+            0% { transform: rotateY(180deg) scale(1); }
+            50% { transform: rotateY(180deg) scale(1.1); box-shadow: 0 0 25px rgba(250, 204, 21, 0.8); }
+            100% { transform: rotateY(180deg) scale(1); }
+        }
+
+        .card-inner.matched .card-back {
+            animation: pulse-success 0.5s ease-in-out;
+            border-color: #4ade80;
+            background: #f0fdf4;
+        }
+
+        /* Sparkle float text */
+        @keyframes float-up {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1.3); }
+        }
+
+        .sparkle-text {
+            position: absolute;
+            pointer-events: none;
+            animation: float-up 0.8s ease-out forwards;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #10b981;
+            z-index: 30;
+        }
+
+        /* Canvas Overlay */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between min-h-screen p-3 md:p-6 text-gray-800">
+
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Header & Dashboard -->
+    <header class="w-full max-w-4xl flex flex-col items-center gap-3 mb-2">
+        <!-- Title & Subtitle -->
+        <div class="text-center">
+            <h1 id="game-title" class="text-3xl md:text-5xl font-black text-indigo-700 drop-shadow-md flex items-center justify-center gap-2">
+                <span>🐶</span> 신나는 카드 짝 맞추기 <span>📚</span>
+            </h1>
+            <p id="game-subtitle" class="text-sm md:text-base text-indigo-900 mt-1">같은 짝을 찾아 재밌게 학습해보세요!</p>
+        </div>
+
+        <!-- Settings & Controls Bar -->
+        <div class="w-full bg-white/80 backdrop-blur-md rounded-2xl p-3 md:p-4 shadow-xl flex flex-wrap items-center justify-between gap-3 border-2 border-white">
+            
+            <!-- Category & Difficulty Selector -->
+            <div class="flex flex-wrap items-center gap-2 md:gap-4">
+                <!-- Theme/Category Select -->
+                <div class="flex items-center gap-1.5">
+                    <label for="theme-select" class="text-gray-700 text-sm md:text-base flex items-center gap-1 font-bold">
+                        <i class="fa-solid fa-book-open text-indigo-500"></i> 주제:
+                    </label>
+                    <select id="theme-select" class="bg-indigo-50 border-2 border-indigo-200 text-indigo-900 rounded-xl px-2.5 py-1.5 text-sm md:text-base font-bold focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer">
+                        <option value="animals">🐶 귀여운 동물</option>
+                        <option value="idioms">📖 사자성어 짝 맞추기</option>
+                        <option value="proverbs">💡 속담 짝 맞추기</option>
+                        <option value="kdc">📚 KDC 한국십진분류법</option>
+                    </select>
+                </div>
+
+                <!-- Difficulty Select -->
+                <div class="flex items-center gap-1.5">
+                    <label for="difficulty" class="text-gray-700 text-sm md:text-base flex items-center gap-1 font-bold">
+                        <i class="fa-solid fa-layer-group text-indigo-500"></i> 난이도:
+                    </label>
+                    <select id="difficulty" class="bg-indigo-50 border-2 border-indigo-200 text-indigo-900 rounded-xl px-2.5 py-1.5 text-sm md:text-base font-bold focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer">
+                        <option value="easy">쉬움 (3x4 - 6쌍)</option>
+                        <option value="medium" selected>보통 (4x4 - 8쌍)</option>
+                        <option value="hard">어려움 (4x5 - 10쌍)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dashboard Stats -->
+            <div class="flex items-center gap-3 md:gap-6 text-sm md:text-lg font-bold">
+                <div class="flex items-center gap-1.5 bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-xl border border-yellow-300">
+                    <i class="fa-solid fa-star text-yellow-500"></i>
+                    <span>점수: <span id="score" class="text-indigo-900 font-extrabold">0</span></span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-blue-100 text-blue-800 px-3 py-1.5 rounded-xl border border-blue-300">
+                    <i class="fa-solid fa-arrow-pointer text-blue-500"></i>
+                    <span>시도: <span id="moves" class="text-indigo-900 font-extrabold">0</span></span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-green-100 text-green-800 px-3 py-1.5 rounded-xl border border-green-300">
+                    <i class="fa-solid fa-stopwatch text-green-500"></i>
+                    <span id="timer" class="text-indigo-900 font-extrabold">00:00</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2">
+                <!-- Mute Toggle -->
+                <button id="mute-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center border-2 border-gray-300 transition active:scale-95 shadow" title="음소거 설정">
+                    <i id="mute-icon" class="fa-solid fa-volume-high text-lg"></i>
+                </button>
+                <!-- Restart Button -->
+                <button id="restart-btn" class="bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-white font-bold px-4 py-2 rounded-xl shadow-lg border-b-4 border-teal-700 active:border-b-0 active:translate-y-1 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>다시 시작</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Learning Tip Toast / Explanation Area -->
+        <div id="learning-tip-box" class="w-full bg-amber-50 border-2 border-amber-300 rounded-xl p-2.5 px-4 text-xs md:text-sm text-amber-900 font-bold flex items-center justify-between shadow-sm hidden">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">💡</span>
+                <span id="learning-tip-text">짝을 맞추면 유용한 설명이 여기에 나타납니다!</span>
+            </div>
+            <span class="text-amber-500 text-xs shrink-0">학습 힌트</span>
+        </div>
+
+        <!-- Best Score Bar -->
+        <div class="w-full flex justify-end text-xs md:text-sm text-indigo-900 font-bold px-2">
+            <span>🏆 최고 기록 (<span id="best-theme-label">보통</span>): <span id="best-score" class="text-amber-600 font-extrabold">-</span>점</span>
+        </div>
+    </header>
+
+    <!-- Main Game Board Container -->
+    <main class="w-full max-w-4xl flex-1 flex items-center justify-center my-2 p-2">
+        <div id="game-board" class="grid gap-2.5 md:gap-4 w-full max-w-3xl justify-center items-center">
+            <!-- Dynamic Cards Inserted Here -->
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-4xl text-center py-2 text-xs md:text-sm text-indigo-800 font-medium">
+        <p>💡 어린이 집중력 향상 디지털 교구 | 짝맞추기 메모리 게임 🐾</p>
+    </footer>
+
+    <!-- Victory Modal -->
+    <div id="victory-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-40 hidden transition-opacity duration-300 opacity-0">
+        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl border-4 border-yellow-300 transform scale-90 transition-transform duration-300 relative overflow-hidden" id="modal-content">
+            <!-- Modal Background Banner Decor -->
+            <div class="absolute -top-12 -left-12 w-32 h-32 bg-yellow-200 rounded-full blur-xl opacity-60"></div>
+            <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-pink-200 rounded-full blur-xl opacity-60"></div>
+
+            <div class="text-5xl md:text-6xl mb-2 animate-bounce">🎉</div>
+            <h2 class="text-3xl md:text-4xl font-extrabold text-indigo-700 mb-1">축하합니다!</h2>
+            <p class="text-gray-600 mb-4 text-sm md:text-base"> 모든 카드 짝을 완성했어요!</p>
+
+            <!-- Star Rating -->
+            <div id="star-rating" class="flex justify-center gap-2 text-3xl md:text-4xl text-amber-400 mb-6">
+                <i class="fa-solid fa-star drop-shadow"></i>
+                <i class="fa-solid fa-star drop-shadow"></i>
+                <i class="fa-solid fa-star drop-shadow"></i>
+            </div>
+
+            <!-- Score Summary Card -->
+            <div class="bg-indigo-50/80 rounded-2xl p-4 mb-6 border border-indigo-100 grid grid-cols-3 gap-2 text-center">
+                <div>
+                    <p class="text-xs text-indigo-500 font-bold mb-0.5">총 점수</p>
+                    <p id="modal-score" class="text-xl md:text-2xl font-black text-indigo-900">0</p>
+                </div>
+                <div>
+                    <p class="text-xs text-indigo-500 font-bold mb-0.5">시도 횟수</p>
+                    <p id="modal-moves" class="text-xl md:text-2xl font-black text-indigo-900">0</p>
+                </div>
+                <div>
+                    <p class="text-xs text-indigo-500 font-bold mb-0.5">소요 시간</p>
+                    <p id="modal-time" class="text-xl md:text-2xl font-black text-indigo-900">00:00</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons in Modal -->
+            <button id="modal-restart-btn" class="w-full bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 hover:from-yellow-500 hover:to-pink-600 text-white font-extrabold py-3.5 px-6 rounded-2xl text-lg shadow-lg border-b-4 border-orange-600 active:border-b-0 active:translate-y-1 transition">
+                <i class="fa-solid fa-rotate-right mr-2"></i> 한 번 더 하기!
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Logic & Audio Synthesis JavaScript -->
+    <script>
+        /**
+         * Web Audio API Sound Synthesizer
+         * Provides sound effects without external audio files.
+         */
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playFlip() {
+                if (this.muted) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+
+            playMatch() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                // Bright major triad arpeggio (C5 - E5 - G5 - C6)
+                const freqs = [523.25, 659.25, 783.99, 1046.50];
+
+                freqs.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + idx * 0.06);
+                    osc.stop(now + idx * 0.06 + 0.25);
+                });
+            }
+
+            playMismatch() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.linearRampToValueAtTime(150, now + 0.2);
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+
+            playVictory() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                // Cheerful Victory Fanfare Notes
+                const notes = [
+                    { f: 523.25, d: 0.12, delay: 0 },
+                    { f: 659.25, d: 0.12, delay: 0.12 },
+                    { f: 783.99, d: 0.12, delay: 0.24 },
+                    { f: 1046.50, d: 0.4, delay: 0.36 }
+                ];
+
+                notes.forEach(note => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(note.f, now + note.delay);
+
+                    gain.gain.setValueAtTime(0.25, now + note.delay);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + note.delay + note.d);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + note.delay);
+                    osc.stop(now + note.delay + note.d);
+                });
+            }
+        }
+
+        /**
+         * Canvas Confetti Particle System
+         */
+        class ConfettiSystem {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                this.animationId = null;
+                this.resize();
+
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+
+            trigger() {
+                this.particles = [];
+                const colors = ['#FFDE59', '#FF914D', '#FF66C4', '#8C52FF', '#5CE1E6', '#7ED957'];
+                
+                for (let i = 0; i < 120; i++) {
+                    this.particles.push({
+                        x: this.canvas.width / 2,
+                        y: this.canvas.height / 2,
+                        vx: (Math.random() - 0.5) * 18,
+                        vy: (Math.random() - 0.7) * 18,
+                        size: Math.random() * 10 + 6,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        rotation: Math.random() * 360,
+                        rSpeed: (Math.random() - 0.5) * 10,
+                        gravity: 0.3,
+                        opacity: 1
+                    });
+                }
+
+                if (this.animationId) cancelAnimationFrame(this.animationId);
+                this.animate();
+            }
+
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                this.particles.forEach((p, index) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += p.gravity;
+                    p.rotation += p.rSpeed;
+                    p.opacity -= 0.008;
+
+                    this.ctx.save();
+                    this.ctx.translate(p.x, p.y);
+                    this.ctx.rotate((p.rotation * Math.PI) / 180);
+                    this.ctx.globalAlpha = Math.max(0, p.opacity);
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    this.ctx.restore();
+
+                    if (p.opacity <= 0) {
+                        this.particles.splice(index, 1);
+                    }
+                });
+
+                if (this.particles.length > 0) {
+                    this.animationId = requestAnimationFrame(() => this.animate());
+                } else {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                }
+            }
+        }
+
+        /**
+         * Main Game Logic
+         */
+        class MemoryGame {
+            constructor() {
+                // Topic & Learning Datasets
+                this.datasets = {
+                    animals: [
+                        { pairId: 1, text: '🐶', label: '강아지', desc: '사람을 잘 따르는 충직한 동물입니다.' },
+                        { pairId: 2, text: '🐱', label: '고양이', desc: '점프를 잘하고 유연한 동물입니다.' },
+                        { pairId: 3, text: '🐰', label: '토끼', desc: '귀가 길고 깡충깡충 뛰는 동물입니다.' },
+                        { pairId: 4, text: '🦊', label: '여우', desc: '꼬리가 풍성하고 꾀가 많은 동물입니다.' },
+                        { pairId: 5, text: '🐻', label: '곰', desc: '몸집이 크고 힘이 센 동물입니다.' },
+                        { pairId: 6, text: '🐼', label: '판다', desc: '대나무를 좋아하는 귀여운 곰입니다.' },
+                        { pairId: 7, text: '🐨', label: '코알라', desc: '유칼립투스 잎을 먹는 동물입니다.' },
+                        { pairId: 8, text: '🐯', label: '호랑이', desc: '줄무늬가 특징인 맹수입니다.' },
+                        { pairId: 9, text: '🦁', label: '사자', desc: '동물의 왕이라 불리는 사자입니다.' },
+                        { pairId: 10, text: '🐮', label: '소', desc: '우리에게 유익한 친근한 동물입니다.' }
+                    ],
+                    idioms: [
+                        { pairId: 1, left: '대기', right: '만성', desc: '대기만성: 큰 사람은 인내를 거쳐 늦게 이루어짐' },
+                        { pairId: 2, left: '고진', right: '감래', desc: '고진감래: 고생 끝에 즐거움이 옴' },
+                        { pairId: 3, left: '일석', right: '이조', desc: '일석이조: 돌 하나를 던져 새 두 마리를 잡음 (일거양득)' },
+                        { pairId: 4, left: '동문', right: '서답', desc: '동문서답: 묻는 말에 엉뚱한 대답을 함' },
+                        { pairId: 5, left: '천고', right: '마비', desc: '천고마비: 하늘은 높고 말은 찌우는 풍요로운 가을' },
+                        { pairId: 6, left: '학수', right: '고대', desc: '학수고대: 학의 목처럼 길게 빼고 간절히 기다림' },
+                        { pairId: 7, left: '온고', right: '지신', desc: '온고지신: 옛것을 익혀 새로운 지식을 얻음' },
+                        { pairId: 8, left: '유유', right: '상종', desc: '유유상종: 같은 무리끼리 서로 서로 어울림' },
+                        { pairId: 9, left: '동고', right: '동락', desc: '동고동락: 괴로움과 즐거움을 함께 나눔' },
+                        { pairId: 10, left: '전화', right: '위복', desc: '전화위복: 불행이 바뀌어 도리어 복이 됨' }
+                    ],
+                    proverbs: [
+                        { pairId: 1, left: '낫놓고', right: 'ㄱ자도 모른다', desc: '아주 간단한 글자나 사실도 모를 때 쓰는 말입니다.' },
+                        { pairId: 2, left: '가는 말이 고와야', right: '오는 말이 곱다', desc: '남에게 말을 예쁘게 해야 남도 나에게 잘해줍니다.' },
+                        { pairId: 3, left: '돌다리도', right: '두들겨 보고 건너라', desc: '잘 아는 일이라도 조심하여 확인하라는 뜻입니다.' },
+                        { pairId: 4, left: '원숭이도', right: '나무에서 떨어진다', desc: '아무리 잘하는 사람도 실수할 때가 있습니다.' },
+                        { pairId: 5, left: '세 살 버릇', right: '여든까지 간다', desc: '어릴 때 몸에 밴 좋은 습관이 평생 갑니다.' },
+                        { pairId: 6, left: '소 잃고', right: '외양간 고친다', desc: '일을 그르친 뒤에 뒤늦게 대비함을 비꼬는 말입니다.' },
+                        { pairId: 7, left: '바늘 도둑이', right: '소 도둑 된다', desc: '작은 바늘을 탐내다 큰 죄를 짓게 됨을 경계하는 말입니다.' },
+                        { pairId: 8, left: '등잔 밑이', right: '어둡다', desc: '가까이 있는 것을 오히려 찾기 어려울 때를 말합니다.' },
+                        { pairId: 9, left: '가랑비에', right: '옷 젖는 줄 모른다', desc: '작은 사치나 실수가 쌓여 큰 부담이 됨을 뜻합니다.' },
+                        { pairId: 10, left: '우물 안', right: '개구리', desc: '넓은 세상을 알지 못하고 견문이 좁은 사람을 뜻합니다.' }
+                    ],
+                    kdc: [
+                        { pairId: 1, left: '000', right: '총류', desc: '000 총류: 백과사전, 도서관학, 일반 학문 등' },
+                        { pairId: 2, left: '100', right: '철학', desc: '100 철학: 심리학, 윤리학, 사고방식 등' },
+                        { pairId: 3, left: '200', right: '종교', desc: '200 종교: 세계 종교 및 신화, 교리 등' },
+                        { pairId: 4, left: '300', right: '사회과학', desc: '300 사회과학: 정치, 경제, 법률, 교육 등' },
+                        { pairId: 5, left: '400', right: '순수과학', desc: '400 순수과학: 수학, 물리학, 동식물학 등' },
+                        { pairId: 6, left: '500', right: '기술과학', desc: '500 기술과학: 의학, 공학, 농업, 컴퓨터 등' },
+                        { pairId: 7, left: '600', right: '예술', desc: '600 예술: 음악, 미술, 체육, 연극 등' },
+                        { pairId: 8, left: '700', right: '언어', desc: '700 언어: 국어, 영어, 외국어 등' },
+                        { pairId: 9, left: '800', right: '문학', desc: '800 문학: 시, 소설, 수필 등' },
+                        { pairId: 10, left: '900', right: '역사', desc: '900 역사: 지리, 한국사, 세계사 등' }
+                    ]
+                };
+
+                this.difficultyConfig = {
+                    easy: { rows: 3, cols: 4, pairs: 6 },
+                    medium: { rows: 4, cols: 4, pairs: 8 },
+                    hard: { rows: 4, cols: 5, pairs: 10 }
+                };
+
+                // Game States
+                this.currentTheme = 'animals';
+                this.currentDifficulty = 'medium';
+                this.cards = [];
+                this.flippedCards = [];
+                this.matchedPairs = 0;
+                this.moves = 0;
+                this.score = 0;
+                this.isLocked = false;
+                this.secondsElapsed = 0;
+                this.timerInterval = null;
+                this.gameStarted = false;
+
+                // Audio & Particle Instances
+                this.sound = new SoundFX();
+                this.confetti = new ConfettiSystem('confetti-canvas');
+
+                // DOM Cache
+                this.boardEl = document.getElementById('game-board');
+                this.scoreEl = document.getElementById('score');
+                this.movesEl = document.getElementById('moves');
+                this.timerEl = document.getElementById('timer');
+                this.difficultySelect = document.getElementById('difficulty');
+                this.themeSelect = document.getElementById('theme-select');
+                this.bestScoreEl = document.getElementById('best-score');
+                this.bestThemeLabel = document.getElementById('best-theme-label');
+                this.muteBtn = document.getElementById('mute-btn');
+                this.muteIcon = document.getElementById('mute-icon');
+                this.tipBox = document.getElementById('learning-tip-box');
+                this.tipText = document.getElementById('learning-tip-text');
+                this.victoryModal = document.getElementById('victory-modal');
+                this.modalContent = document.getElementById('modal-content');
+
+                this.bindEvents();
+                this.loadBestScore();
+                this.initGame();
+            }
+
+            bindEvents() {
+                // Restart buttons
+                document.getElementById('restart-btn').addEventListener('click', () => this.initGame());
+                document.getElementById('modal-restart-btn').addEventListener('click', () => {
+                    this.hideVictoryModal();
+                    this.initGame();
+                });
+
+                // Theme Selector
+                this.themeSelect.addEventListener('change', (e) => {
+                    this.currentTheme = e.target.value;
+                    this.loadBestScore();
+                    this.initGame();
+                });
+
+                // Difficulty Selector
+                this.difficultySelect.addEventListener('change', (e) => {
+                    this.currentDifficulty = e.target.value;
+                    this.loadBestScore();
+                    this.initGame();
+                });
+
+                // Mute Sound Toggle
+                this.muteBtn.addEventListener('click', () => {
+                    this.sound.muted = !this.sound.muted;
+                    if (this.sound.muted) {
+                        this.muteIcon.className = 'fa-solid fa-volume-xmark text-red-500';
+                        this.muteBtn.classList.add('bg-red-50', 'border-red-200');
+                    } else {
+                        this.muteIcon.className = 'fa-solid fa-volume-high text-lg';
+                        this.muteBtn.classList.remove('bg-red-50', 'border-red-200');
+                    }
+                });
+            }
+
+            startTimer() {
+                this.stopTimer();
+                this.secondsElapsed = 0;
+                this.updateTimerDisplay();
+                this.timerInterval = setInterval(() => {
+                    this.secondsElapsed++;
+                    this.updateTimerDisplay();
+                }, 1000);
+            }
+
+            stopTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+
+            updateTimerDisplay() {
+                const mins = Math.floor(this.secondsElapsed / 60).toString().padStart(2, '0');
+                const secs = (this.secondsElapsed % 60).toString().padStart(2, '0');
+                this.timerEl.textContent = `${mins}:${secs}`;
+            }
+
+            loadBestScore() {
+                const key = `memory_game_${this.currentTheme}_${this.currentDifficulty}`;
+                const best = localStorage.getItem(key) || '-';
+                this.bestScoreEl.textContent = best;
+                
+                const themeNames = { animals: '동물', idioms: '사자성어', proverbs: '속담', kdc: 'KDC' };
+                const diffNames = { easy: '쉬움', medium: '보통', hard: '어려움' };
+                this.bestThemeLabel.textContent = `${themeNames[this.currentTheme]} ${diffNames[this.currentDifficulty]}`;
+            }
+
+            saveBestScore() {
+                const key = `memory_game_${this.currentTheme}_${this.currentDifficulty}`;
+                const currentBest = localStorage.getItem(key);
+                if (!currentBest || this.score > parseInt(currentBest)) {
+                    localStorage.setItem(key, this.score.toString());
+                    this.bestScoreEl.textContent = this.score;
+                }
+            }
+
+            initGame() {
+                this.stopTimer();
+                this.matchedPairs = 0;
+                this.moves = 0;
+                this.score = 0;
+                this.flippedCards = [];
+                this.isLocked = false;
+                this.gameStarted = false;
+
+                this.scoreEl.textContent = '0';
+                this.movesEl.textContent = '0';
+                this.timerEl.textContent = '00:00';
+
+                // Learning tip display reset
+                if (this.currentTheme === 'animals') {
+                    this.tipBox.classList.add('hidden');
+                } else {
+                    this.tipBox.classList.remove('hidden');
+                    this.tipText.textContent = '짝을 맞추면 정답 설명과 학습 힌트가 여기에 나타납니다!';
+                }
+
+                const config = this.difficultyConfig[this.currentDifficulty];
+                const rawDataset = this.datasets[this.currentTheme];
+
+                // Shuffle and pick pairs based on difficulty
+                const selectedItems = [...rawDataset].sort(() => Math.random() - 0.5).slice(0, config.pairs);
+                
+                // Build Card Deck
+                let cardDeck = [];
+                if (this.currentTheme === 'animals') {
+                    selectedItems.forEach(item => {
+                        cardDeck.push({ pairId: item.pairId, text: item.text, sub: item.label, desc: item.desc });
+                        cardDeck.push({ pairId: item.pairId, text: item.text, sub: item.label, desc: item.desc });
+                    });
+                } else {
+                    selectedItems.forEach(item => {
+                        cardDeck.push({ pairId: item.pairId, text: item.left, sub: '짝 1', desc: item.desc });
+                        cardDeck.push({ pairId: item.pairId, text: item.right, sub: '짝 2', desc: item.desc });
+                    });
+                }
+
+                // Final Shuffle
+                this.cards = cardDeck.sort(() => Math.random() - 0.5).map((c, i) => ({
+                    ...c,
+                    id: i,
+                    isFlipped: false,
+                    isMatched: false
+                }));
+
+                this.renderBoard(config);
+            }
+
+            renderBoard(config) {
+                this.boardEl.innerHTML = '';
+
+                // Responsive Grid Columns Class Setup
+                let gridColsClass = 'grid-cols-4';
+                if (config.cols === 5) gridColsClass = 'grid-cols-4 sm:grid-cols-5';
+                if (config.cols === 3) gridColsClass = 'grid-cols-3';
+
+                this.boardEl.className = `grid ${gridColsClass} gap-2.5 sm:gap-3.5 md:gap-4 w-full max-w-3xl mx-auto`;
+
+                const totalCards = config.pairs * 2;
+                let heightClass = 'h-24 sm:h-28 md:h-32';
+                if (totalCards > 16) heightClass = 'h-20 sm:h-24 md:h-28';
+
+                const isAnimalTheme = this.currentTheme === 'animals';
+
+                this.cards.forEach((card, index) => {
+                    const cardWrapper = document.createElement('div');
+                    cardWrapper.className = `perspective-1000 ${heightClass} w-full`;
+
+                    // Dynamic font sizing for long texts (proverbs/idioms)
+                    let textStyleClass = 'text-base sm:text-lg md:text-xl font-extrabold text-indigo-950 px-1 text-center leading-tight';
+                    if (isAnimalTheme) {
+                        textStyleClass = 'text-3xl sm:text-4xl md:text-5xl select-none';
+                    } else if (card.text.length > 7) {
+                        textStyleClass = 'text-xs sm:text-sm md:text-base font-extrabold text-indigo-950 px-1 text-center leading-snug';
+                    }
+
+                    const themeCardClass = isAnimalTheme ? '' : 'theme-learning';
+
+                    cardWrapper.innerHTML = `
+                        <div class="card-inner" data-index="${index}">
+                            <div class="card-face card-front"></div>
+                            <div class="card-face card-back ${themeCardClass} flex flex-col items-center justify-center p-1.5 overflow-hidden">
+                                <span class="${textStyleClass}">${card.text}</span>
+                                ${isAnimalTheme ? `<span class="text-xs md:text-sm font-bold text-gray-600 mt-1">${card.sub}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+
+                    const inner = cardWrapper.querySelector('.card-inner');
+                    inner.addEventListener('click', () => this.handleCardClick(index, inner));
+
+                    this.boardEl.appendChild(cardWrapper);
+                });
+            }
+
+            handleCardClick(index, cardEl) {
+                if (this.isLocked) return;
+                
+                const card = this.cards[index];
+                if (card.isFlipped || card.isMatched) return;
+
+                if (!this.gameStarted) {
+                    this.gameStarted = true;
+                    this.startTimer();
+                }
+
+                this.sound.playFlip();
+
+                card.isFlipped = true;
+                cardEl.classList.add('flipped');
+                this.flippedCards.push({ index, cardEl, card });
+
+                if (this.flippedCards.length === 2) {
+                    this.moves++;
+                    this.movesEl.textContent = this.moves;
+                    this.checkMatch();
+                }
+            }
+
+            checkMatch() {
+                this.isLocked = true;
+                const [first, second] = this.flippedCards;
+
+                if (first.card.pairId === second.card.pairId) {
+                    // Match Success!
+                    setTimeout(() => {
+                        this.sound.playMatch();
+
+                        first.card.isMatched = true;
+                        second.card.isMatched = true;
+
+                        first.cardEl.classList.add('matched');
+                        second.cardEl.classList.add('matched');
+
+                        // Show description on top tip bar
+                        if (first.card.desc) {
+                            this.tipBox.classList.remove('hidden');
+                            this.tipText.textContent = `✨ ${first.card.desc}`;
+                        }
+
+                        this.showSparkle(first.cardEl, '+100');
+                        this.showSparkle(second.cardEl, '+100');
+
+                        this.score += 100;
+                        this.scoreEl.textContent = this.score;
+
+                        this.matchedPairs++;
+                        this.flippedCards = [];
+                        this.isLocked = false;
+
+                        const config = this.difficultyConfig[this.currentDifficulty];
+                        if (this.matchedPairs === config.pairs) {
+                            this.handleVictory();
+                        }
+                    }, 400);
+
+                } else {
+                    // Mismatch
+                    setTimeout(() => {
+                        this.sound.playMismatch();
+                    }, 400);
+
+                    setTimeout(() => {
+                        first.card.isFlipped = false;
+                        second.card.isFlipped = false;
+
+                        first.cardEl.classList.remove('flipped');
+                        second.cardEl.classList.remove('flipped');
+
+                        this.flippedCards = [];
+                        this.isLocked = false;
+                    }, 1000);
+                }
+            }
+
+            showSparkle(cardEl, text) {
+                const rect = cardEl.getBoundingClientRect();
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle-text';
+                sparkle.textContent = text;
+                sparkle.style.left = `${rect.left + rect.width / 2 - 20}px`;
+                sparkle.style.top = `${rect.top + 10}px`;
+                document.body.appendChild(sparkle);
+
+                setTimeout(() => sparkle.remove(), 800);
+            }
+
+            calculateStars() {
+                const config = this.difficultyConfig[this.currentDifficulty];
+                const minPossibleMoves = config.pairs;
+                
+                if (this.moves <= minPossibleMoves + 2) return 3;
+                if (this.moves <= minPossibleMoves + 6) return 2;
+                return 1;
+            }
+
+            handleVictory() {
+                this.stopTimer();
+                this.saveBestScore();
+
+                setTimeout(() => {
+                    this.sound.playVictory();
+                    this.confetti.trigger();
+                    this.showVictoryModal();
+                }, 500);
+            }
+
+            showVictoryModal() {
+                document.getElementById('modal-score').textContent = this.score;
+                document.getElementById('modal-moves').textContent = this.moves;
+                document.getElementById('modal-time').textContent = this.timerEl.textContent;
+
+                const starsCount = this.calculateStars();
+                const starsContainer = document.getElementById('star-rating');
+                starsContainer.innerHTML = '';
+                for (let i = 1; i <= 3; i++) {
+                    const star = document.createElement('i');
+                    if (i <= starsCount) {
+                        star.className = 'fa-solid fa-star drop-shadow';
+                    } else {
+                        star.className = 'fa-regular fa-star text-gray-300 drop-shadow-none';
+                    }
+                    starsContainer.appendChild(star);
+                }
+
+                this.victoryModal.classList.remove('hidden');
+                setTimeout(() => {
+                    this.victoryModal.classList.remove('opacity-0');
+                    this.modalContent.classList.remove('scale-90');
+                    this.modalContent.classList.add('scale-100');
+                }, 10);
+            }
+
+            hideVictoryModal() {
+                this.victoryModal.classList.add('opacity-0');
+                this.modalContent.classList.remove('scale-100');
+                this.modalContent.classList.add('scale-90');
+                setTimeout(() => {
+                    this.victoryModal.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        // Initialize Game when Window Loads
+        window.onload = () => {
+            window.gameInstance = new MemoryGame();
+        };
+    </script>
+</body>
+</html>
