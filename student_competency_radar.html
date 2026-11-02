@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학생 역량 성장 분석</title>
+<style>
+:root{--ink:#20283a;--muted:#778196;--line:#e7eaf1;--bg:#f5f7fb;--blue:#5578e8;--red:#e87568;--green:#239b78}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,"Noto Sans KR",sans-serif;line-height:1.5}
+.app{max-width:1200px;margin:auto;padding:34px 26px 55px}header{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:24px}
+.kicker{font-size:11px;letter-spacing:.13em;font-weight:800;color:var(--blue)}h1{font-size:clamp(25px,3vw,34px);letter-spacing:-1.2px;margin:5px 0}.subtitle{font-size:14px;color:var(--muted);margin:0}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:white;color:var(--ink);border-radius:10px;padding:10px 14px;font-weight:700;font-size:13px}.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}.btn:hover{filter:brightness(.97)}
+.grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,.9fr);gap:18px;align-items:start}.card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:21px;box-shadow:0 5px 20px #23304e08}
+.cardhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:13px}h2{font-size:16px;margin:0}.muted{color:var(--muted);font-size:12px}
+.student{display:flex;gap:10px;margin-bottom:17px}.field{flex:1;min-width:0}.field label{display:block;color:var(--muted);font-size:11px;font-weight:700;margin-bottom:5px}.field input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:13px;outline:none}.field input:focus{border-color:var(--blue);box-shadow:0 0 0 3px #5578e81a}
+.legend{display:flex;justify-content:center;gap:20px;margin:4px 0 0;font-size:12px;color:#596276}.legend span{display:flex;align-items:center;gap:7px}.swatch{width:9px;height:9px;border-radius:50%}.swatch.pre{background:var(--blue)}.swatch.post{background:var(--red)}
+.chartbox{display:flex;justify-content:center;align-items:center;min-height:350px;padding:4px 0}canvas{width:100%;max-width:590px;height:auto;display:block}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}.metric{background:#f7f8fc;border-radius:12px;padding:12px}.metric small{display:block;color:var(--muted);font-size:11px}.metric strong{font-size:21px;letter-spacing:-.5px}.positive{color:var(--green)}.negative{color:var(--red)}
+.data-card{margin-bottom:16px}.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:390px}th{text-align:left;color:var(--muted);font-size:11px;font-weight:700;padding:8px 7px;border-bottom:1px solid var(--line)}td{padding:7px;border-bottom:1px solid #f0f1f5}td input{width:100%;min-width:0;border:1px solid var(--line);border-radius:7px;padding:7px 8px;font:inherit;font-size:12px}td input[type=number]{text-align:center}td input:focus{outline:2px solid #5578e833;border-color:var(--blue)}.remove{border:0;background:#f5f6fa;color:#9aa2b1;border-radius:7px;width:28px;height:28px;font-size:16px}.remove:hover{background:#fff0ee;color:var(--red)}
+.addrow{margin-top:12px;border:1px dashed #cbd2e2;background:#fafbfe;color:#53617d;border-radius:9px;padding:9px 12px;font-weight:700;font-size:12px;width:100%}
+.summary{font-size:13px;color:#4f596e;line-height:1.75;margin:9px 0 0;white-space:pre-line}.summary strong{color:var(--ink)}.note{font-size:11px;color:#929bad;margin-top:13px}
+.scale{font-size:11px;color:var(--muted);background:#f7f8fc;padding:8px 10px;border-radius:8px}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.app{padding:25px 17px 40px}.chartbox{min-height:300px}}
+@media(max-width:520px){header{display:block}.actions{margin-top:15px}.card{padding:16px}.student{flex-direction:column}.metrics{gap:7px}.metric{padding:10px}.metric strong{font-size:18px}.chartbox{min-height:260px}.legend{gap:14px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+ <div><div class="kicker">LEARNING OUTCOME INSIGHT</div><h1>학생 역량 성장 분석</h1><p class="subtitle">사전·사후 자기평가를 하나의 레이더 차트로 비교하세요.</p></div>
+ <div class="actions"><button class="btn" id="reset">예시 데이터 불러오기</button><button class="btn primary" id="save">차트 이미지 저장 ↗</button></div>
+</header>
+<main class="grid">
+<section class="card">
+ <div class="cardhead"><h2>역량 변화 한눈에 보기</h2><span class="scale">평가 척도 · 0–100점</span></div>
+ <div class="student">
+  <div class="field"><label for="studentName">학생 / 집단명</label><input id="studentName" value="예시 학생" maxlength="40"></div>
+  <div class="field"><label for="assessmentName">평가명</label><input id="assessmentName" value="디지털 역량 사전·사후 평가" maxlength="50"></div>
+ </div>
+ <div class="legend"><span><i class="swatch pre"></i>사전 평가</span><span><i class="swatch post"></i>사후 평가</span></div>
+ <div class="chartbox"><canvas id="radar" width="700" height="560" aria-label="사전 사후 역량 레이더 차트"></canvas></div>
+ <div class="metrics">
+  <div class="metric"><small>사전 평균</small><strong id="preAvg">3.0</strong></div>
+  <div class="metric"><small>사후 평균</small><strong id="postAvg">4.0</strong></div>
+  <div class="metric"><small>평균 변화</small><strong id="delta" class="positive">+1.0</strong></div>
+ </div>
+</section>
+<aside>
+ <section class="card data-card">
+  <div class="cardhead"><h2>평가 지표 입력</h2><span class="muted">0–100점 · 소수점 입력 가능</span></div>
+  <div class="tablewrap"><table><thead><tr><th style="width:38%">역량 영역</th><th>사전</th><th>사후</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+  <button class="addrow" id="add">＋ 평가 영역 추가</button>
+  <p class="note">영역명과 점수를 수정하면 차트와 분석 결과가 자동으로 갱신됩니다. 최소 3개, 최대 10개 영역을 사용할 수 있습니다.</p>
+ </section>
+ <section class="card">
+  <div class="cardhead"><h2>분석 요약</h2><span class="muted">자동 분석</span></div>
+  <p class="summary" id="summary" aria-live="polite"></p>
+  <p class="note">※ 자기평가 점수의 변화는 학생이 인식한 역량 수준의 차이를 나타냅니다. 실제 수행 능력의 향상 여부는 다른 평가 자료와 함께 해석하세요.</p>
+ </section>
+</aside>
+</main>
+</div>
+<script>
+const initial=[
+ ['정보검색 능력',45,78],
+ ['비판적 사고',38,71],
+ ['디지털 도구 활용',52,85],
+ ['협업 능력',60,80],
+ ['창의적 문제해결',41,75]
+];
+let data=initial.map(x=>({name:x[0],pre:x[1],post:x[2]}));
+const $=id=>document.getElementById(id);
+const rows=$('rows'),canvas=$('radar'),ctx=canvas.getContext('2d');
+const clamp=v=>Math.max(0,Math.min(100,Number(v)||0));
+function renderRows(){
+ rows.innerHTML='';
+ data.forEach((d,i)=>{
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td><input aria-label="영역명 ${i+1}" maxlength="18" value="${escapeHtml(d.name)}" data-i="${i}" data-k="name"></td>
+  <td><input aria-label="${escapeHtml(d.name)} 사전 점수" type="number" min="0" max="100" step=".1" value="${d.pre}" data-i="${i}" data-k="pre"></td>
+  <td><input aria-label="${escapeHtml(d.name)} 사후 점수" type="number" min="0" max="100" step=".1" value="${d.post}" data-i="${i}" data-k="post"></td>
+  <td><button class="remove" title="영역 삭제" aria-label="영역 삭제" data-remove="${i}" ${data.length<=3?'disabled':''}>×</button></td>`;
+  rows.appendChild(tr);
+ });
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function average(k){return data.reduce((s,d)=>s+d[k],0)/data.length}
+function draw(){
+ const w=canvas.width,h=canvas.height,cx=w/2,cy=h/2+3,r=Math.min(w*.31,h*.37),n=data.length;
+ ctx.clearRect(0,0,w,h);
+ const angle=i=>-Math.PI/2+i*2*Math.PI/n;
+ // grid rings
+ for(let level=1;level<=5;level++){
+  ctx.beginPath();
+  for(let i=0;i<n;i++){const a=angle(i),rr=r*level/5,x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}
+  ctx.closePath();ctx.strokeStyle=level===5?'#cfd5e2':'#e8ebf2';ctx.lineWidth=level===5?1.5:1;ctx.stroke();
+  ctx.fillStyle='#929bad';ctx.font='11px Arial';ctx.textAlign='center';ctx.fillText(String(level*20),cx+5,cy-r*level/5+4);
+ }
+ // axes and labels
+ for(let i=0;i<n;i++){
+  const a=angle(i),x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(x,y);ctx.strokeStyle='#e3e7ef';ctx.stroke();
+  const lx=cx+Math.cos(a)*(r+35),ly=cy+Math.sin(a)*(r+35);
+  ctx.fillStyle='#48536a';ctx.font='bold 13px Arial, sans-serif';ctx.textAlign=Math.cos(a)>.25?'left':Math.cos(a)<-.25?'right':'center';ctx.textBaseline=Math.sin(a)>.35?'top':Math.sin(a)<-.35?'bottom':'middle';
+  ctx.fillText(data[i].name.length>11?data[i].name.slice(0,10)+'…':data[i].name,lx,ly);
+ }
+ function polygon(key,color,fill){
+  ctx.beginPath();
+  data.forEach((d,i)=>{const a=angle(i),rr=r*d[key]/100,x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});
+  ctx.closePath();ctx.fillStyle=fill;ctx.strokeStyle=color;ctx.lineWidth=3;ctx.fill();ctx.stroke();
+  data.forEach((d,i)=>{const a=angle(i),rr=r*d[key]/100,x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke()});
+ }
+ polygon('pre','#5578e8','rgba(85,120,232,.12)');
+ polygon('post','#e87568','rgba(232,117,104,.13)');
+}
+function update(){
+ draw();
+ const pre=average('pre'),post=average('post'),diff=post-pre;
+ $('preAvg').textContent=pre.toFixed(1);$('postAvg').textContent=post.toFixed(1);
+ $('delta').textContent=(diff>0?'+':'')+diff.toFixed(1);$('delta').className=diff>0?'positive':diff<0?'negative':'';
+ const sorted=[...data].sort((a,b)=>(b.post-b.pre)-(a.post-a.pre));
+ const best=sorted[0],weak=sorted[sorted.length-1];
+ const improved=data.filter(d=>d.post>d.pre).length,unchanged=data.filter(d=>d.post===d.pre).length;
+ const sign=diff>0?'상승':diff<0?'하락':'동일';
+ $('summary').innerHTML=`<strong>${escapeHtml($('studentName').value||'학생')}</strong>의 ${escapeHtml($('assessmentName').value||'평가')} 결과입니다.\n\n전체 평균은 사전 <strong>${pre.toFixed(1)}점</strong>에서 사후 <strong>${post.toFixed(1)}점</strong>으로 <strong>${Math.abs(diff).toFixed(1)}점 ${sign}</strong>했습니다. ${data.length}개 영역 중 <strong>${improved}개 영역</strong>에서 점수가 상승${unchanged?`, ${unchanged}개 영역은 변화 없음`:''}했습니다.\n\n가장 큰 향상 영역은 <strong>${escapeHtml(best.name)}</strong>(${(best.post-best.pre)>0?'+':''}${(best.post-best.pre).toFixed(1)}점)이며, 상대적으로 보완이 필요한 영역은 <strong>${escapeHtml(weak.name)}</strong>(${(weak.post-weak.pre)>0?'+':''}${(weak.post-weak.pre).toFixed(1)}점 변화)입니다.`;
+}
+rows.addEventListener('input',e=>{
+ const el=e.target;if(!el.dataset.i)return;
+ const i=Number(el.dataset.i),k=el.dataset.k;
+ if(k==='name')data[i][k]=el.value;
+ else{let v=Number(el.value);if(el.value==='')v=0;v=Math.max(0,Math.min(100,v));data[i][k]=v;if(el.value!==String(v))el.value=v;}
+ update();
+});
+rows.addEventListener('click',e=>{
+ const b=e.target.closest('[data-remove]');if(!b||data.length<=3)return;
+ data.splice(Number(b.dataset.remove),1);renderRows();update();
+});
+$('add').addEventListener('click',()=>{
+ if(data.length>=10)return alert('평가 영역은 최대 10개까지 추가할 수 있습니다.');
+ data.push({name:`새 영역 ${data.length-5}`,pre:0,post:0});renderRows();update();
+});
+$('reset').addEventListener('click',()=>{data=initial.map(x=>({name:x[0],pre:x[1],post:x[2]}));$('studentName').value='예시 학생';$('assessmentName').value='디지털 역량 사전·사후 평가';renderRows();update();});
+['studentName','assessmentName'].forEach(id=>$(id).addEventListener('input',update));
+$('save').addEventListener('click',()=>{
+ const link=document.createElement('a');link.download=`${$('studentName').value||'학생'}_역량비교차트.png`;link.href=canvas.toDataURL('image/png');link.click();
+});
+renderRows();update();
+</script>
+</body>
+</html>

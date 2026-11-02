@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>조선시대 역사 연표</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1f2430;--sub:#667085;--line:#cfd4dc;--accent:#2f6fed;--accent-ink:#fff;--shadow:0 10px 30px rgba(20,30,60,.18);--p1:#0ea5a4;--p2:#e11d48;--p3:#d97706;--p4:#7c3aed;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14161c;--card:#1e222b;--ink:#eef0f4;--sub:#9aa3b2;--line:#3a404d;--accent:#7aa2ff;--accent-ink:#10131a;--shadow:0 10px 30px rgba(0,0,0,.5);--p4:#a78bfa}}
+:root[data-theme="dark"]{--bg:#14161c;--card:#1e222b;--ink:#eef0f4;--sub:#9aa3b2;--line:#3a404d;--accent:#7aa2ff;--accent-ink:#10131a;--shadow:0 10px 30px rgba(0,0,0,.5);--p4:#a78bfa}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Pretendard","Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;overflow-x:hidden}
+header{padding:14px 16px 4px;text-align:center}
+h1{margin:0;font-size:clamp(1.3rem,3.6vw,1.9rem);letter-spacing:-.02em}
+header p{margin:4px 0 0;color:var(--sub);font-size:.88rem}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;padding:6px 12px;font-size:.8rem;color:var(--sub)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+#board{position:relative;margin:4px auto 0;width:min(720px,100%);height:clamp(480px,calc(100dvh - 190px),720px)}
+#svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.lead{fill:none;stroke:var(--c);stroke-width:1.5;opacity:.5;transition:.3s}
+.lead.on{stroke-width:3;opacity:1}
+.tick{stroke:var(--sub);stroke-width:1}
+.tt{font-size:11px;fill:var(--sub)}
+.dot{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--c);border:2px solid var(--card);pointer-events:none;transition:transform .35s cubic-bezier(.3,1.6,.5,1),box-shadow .3s}
+.dot.on{transform:scale(1.8);box-shadow:0 0 0 5px color-mix(in srgb,var(--c) 28%,transparent);z-index:2}
+.chip{all:unset;position:absolute;display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--card);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:10px;padding:0 10px;box-sizing:border-box;transition:transform .3s,background .3s,box-shadow .3s}
+.chip:hover{transform:translateX(3px)}
+.chip:focus-visible{outline:3px solid var(--accent)}
+.chip.on{transform:translateX(8px);background:color-mix(in srgb,var(--c) 16%,var(--card));box-shadow:var(--shadow)}
+.cy{font-weight:800;color:var(--c);font-size:.9rem;min-width:2.6em}
+.ct{font-size:.95rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav{display:flex;gap:10px;justify-content:center;padding:6px 16px 14px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 18px;border-radius:999px;font:inherit;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+#overlay{position:fixed;inset:0;background:rgba(10,14,25,.5);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+#overlay.show{display:flex;animation:fade .2s}
+.modal{background:var(--card);width:min(520px,100%);max-height:86vh;overflow:auto;border-radius:20px;box-shadow:var(--shadow);padding:24px 24px 20px;border-top:8px solid var(--c);animation:pop .3s cubic-bezier(.3,1.4,.5,1)}
+.badge{display:inline-block;font-size:.8rem;font-weight:700;color:#fff;background:var(--c);padding:3px 10px;border-radius:999px}
+.modal h2{margin:10px 0 2px;font-size:1.5rem}
+.modal .y{color:var(--c);font-weight:800;margin:0 0 12px}
+.modal p.d{margin:0 0 12px;font-size:1.05rem;line-height:1.7}
+.fun{background:color-mix(in srgb,var(--c) 12%,transparent);border-radius:12px;padding:10px 14px;font-size:.95rem;line-height:1.55}
+.actions{display:flex;justify-content:space-between;gap:8px;margin-top:18px}
+@keyframes pop{from{transform:translateY(20px) scale(.95);opacity:0}}
+@keyframes fade{from{opacity:0}}
+@media(max-width:600px){#overlay{align-items:flex-end;padding:0}.modal{border-radius:20px 20px 0 0;max-height:80vh;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}.ct{font-size:.88rem}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header><h1>조선시대 역사 연표</h1><p>점 사이의 거리는 실제 시간 간격과 같아요. 사건을 눌러 보세요!</p></header>
+<div class="legend">
+<span><i style="background:var(--p1)"></i>조선 전기</span><span><i style="background:var(--p2)"></i>전쟁의 시기</span><span><i style="background:var(--p3)"></i>조선 후기</span><span><i style="background:var(--p4)"></i>개항기</span>
+</div>
+<div id="board"><svg id="svg"></svg></div>
+<div class="nav"><button class="btn" id="prev">◀ 이전 사건</button><button class="btn primary" id="next">다음 사건 ▶</button></div>
+<div id="overlay" role="dialog" aria-modal="true" aria-labelledby="mt">
+<div class="modal" id="modal">
+<span class="badge" id="mb"></span><h2 id="mt"></h2><p class="y" id="my"></p><p class="d" id="md"></p><div class="fun" id="mf"></div>
+<div class="actions"><button class="btn" id="mprev">◀ 이전</button><button class="btn primary" id="mclose">닫기</button><button class="btn" id="mnext">다음 ▶</button></div>
+</div></div>
+<script>
+// 사건 데이터: n=연도(숫자). 점의 위치는 연도에 비례해 자동 계산돼요.
+const EVENTS=[
+{n:1392,t:"조선 건국",e:"조선 전기",c:"var(--p1)",d:"이성계 장군이 고려를 이어 조선이라는 새 나라를 세웠어요. 조선은 500년 넘게 이어졌어요.",f:"💡 조선의 수도는 한양, 지금의 서울이에요."},
+{n:1418,t:"세종대왕 즉위",e:"조선 전기",c:"var(--p1)",d:"세종이 조선의 네 번째 임금이 되었어요. 백성이 잘 살 수 있도록 과학, 농사, 음악 등 많은 일을 이루었어요.",f:"💡 세종대왕은 신하들의 이야기를 잘 들어 주는 임금이었어요."},
+{n:1443,t:"한글 창제",e:"조선 전기",c:"var(--p1)",d:"세종대왕이 백성들이 쉽게 배우고 쓸 수 있도록 새 글자를 만들었어요. 이름은 훈민정음, 지금의 한글이에요.",f:"💡 세상에 널리 알린 때는 1446년이에요."},
+{n:1592,t:"임진왜란",e:"전쟁의 시기",c:"var(--p2)",d:"일본이 조선을 쳐들어와 전쟁이 일어났어요. 이순신 장군과 의병(스스로 나선 백성들)이 힘을 모아 나라를 지켰어요.",f:"💡 이순신 장군은 거북선으로 바다에서 크게 이겼어요."},
+{n:1636,t:"병자호란",e:"전쟁의 시기",c:"var(--p2)",d:"청나라가 조선에 쳐들어왔어요. 인조 임금은 남한산성으로 피했지만, 끝내 청나라와 화해해야 했어요.",f:"💡 임진왜란이 끝나고 40년도 안 되어 또 전쟁이 일어났어요."},
+{n:1724,t:"영조의 탕평책",e:"조선 후기",c:"var(--p3)",d:"영조 임금은 편을 갈라 싸우던 신하들을 고르게 뽑아 쓰는 ‘탕평책’을 펼쳤어요. 어느 한쪽으로 치우치지 않겠다는 뜻이에요.",f:"💡 탕평은 ‘다툼 없이 공평하다’는 뜻이에요."},
+{n:1794,t:"수원 화성 축조",e:"조선 후기",c:"var(--p3)",d:"정조 임금이 수원에 튼튼하고 아름다운 성, 화성을 짓기 시작했어요. 정약용이 만든 거중기가 큰 도움이 되었어요.",f:"💡 화성은 세계문화유산이 되었어요."},
+{n:1866,t:"병인양요",e:"개항기",c:"var(--p4)",d:"프랑스 군대가 군함을 타고 강화도에 쳐들어왔어요. 우리 군사들이 맞서 싸워 프랑스 군대를 물리쳤어요.",f:"💡 이때 나라를 이끈 사람은 흥선대원군이에요."},
+{n:1894,t:"동학농민운동",e:"개항기",c:"var(--p4)",d:"관리들이 백성에게 세금을 너무 많이 걷고 괴롭히자, 농민들이 전봉준과 함께 일어나 바로잡으라고 외쳤어요.",f:"💡 ‘사람이 곧 하늘’이라는 동학의 가르침이 큰 힘이 되었어요."},
+{n:1897,t:"대한제국 선포",e:"개항기",c:"var(--p4)",d:"고종이 나라 이름을 ‘대한제국’으로 바꾸고 황제가 되었어요. 다른 나라에 휘둘리지 않는 강한 나라를 만들고 싶었어요.",f:"💡 ‘대한민국’이라는 이름도 여기서 이어졌어요."}
+];
+const $=id=>document.getElementById(id),board=$("board"),svg=$("svg"),ov=$("overlay");
+const A=EVENTS[0].n,B=EVENTS[EVENTS.length-1].n,NS="http://www.w3.org/2000/svg";
+let cur=-1;
+const chips=[],dots=[],leads=[];
+EVENTS.forEach((ev,i)=>{
+ const ch=document.createElement("button");ch.className="chip";ch.style.setProperty("--c",ev.c);
+ ch.innerHTML=`<span class="cy">${ev.n}</span><span class="ct">${ev.t}</span>`;
+ ch.setAttribute("aria-label",ev.n+"년 "+ev.t);ch.onclick=()=>select(i,true);
+ const d=document.createElement("span");d.className="dot";d.style.setProperty("--c",ev.c);
+ board.append(d,ch);chips.push(ch);dots.push(d);
+});
+function layout(){
+ const W=board.clientWidth,H=board.clientHeight,pad=24,ax=W<500?46:60,cx=ax+(W<500?56:120);
+ const span=H-2*pad,step=span/EVENTS.length,ch=Math.min(54,step-6);
+ svg.innerHTML="";leads.length=0;
+ const mk=(tag,a)=>{const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);svg.appendChild(e);return e};
+ mk("line",{x1:ax,y1:pad-10,x2:ax,y2:H-pad+10,stroke:"var(--line)","stroke-width":4,"stroke-linecap":"round"});
+ for(let y=1400;y<=1850;y+=50){const py=pad+(y-A)/(B-A)*span;
+  mk("line",{x1:ax-7,y1:py,x2:ax+7,y2:py,class:"tick"});
+  const t=mk("text",{x:ax-12,y:py+4,"text-anchor":"end",class:"tt"});t.textContent=y;}
+ EVENTS.forEach((ev,i)=>{
+  const y=pad+(ev.n-A)/(B-A)*span,cy=pad+(i+.5)*step;
+  const p=mk("path",{d:`M${ax},${y} C${ax+60},${y} ${cx-60},${cy} ${cx},${cy}`,class:"lead"+(i===cur?" on":"")});
+  p.style.setProperty("--c",ev.c);leads.push(p);
+  dots[i].style.left=ax+"px";dots[i].style.top=y+"px";
+  const c=chips[i];c.style.left=cx+"px";c.style.top=(cy-ch/2)+"px";c.style.width=(W-cx-8)+"px";c.style.height=ch+"px";
+ });
+}
+function select(i,open){
+ if(i<0||i>=EVENTS.length)return;cur=i;
+ chips.forEach((c,k)=>{c.classList.toggle("on",k===i);dots[k].classList.toggle("on",k===i);leads[k].classList.toggle("on",k===i)});
+ $("prev").disabled=i===0;$("next").disabled=i===EVENTS.length-1;
+ if(open){
+  const ev=EVENTS[i],gap=i>0?`앞 사건보다 ${ev.n-EVENTS[i-1].n}년 뒤`:"조선의 시작";
+  $("modal").style.setProperty("--c",ev.c);
+  $("mb").textContent=ev.e;$("mt").textContent=ev.t;$("my").textContent=ev.n+"년 · "+gap;
+  $("md").textContent=ev.d;$("mf").textContent=ev.f;
+  $("mprev").disabled=i===0;$("mnext").disabled=i===EVENTS.length-1;
+  ov.classList.add("show");$("mclose").focus();
+ }
+}
+function close(){ov.classList.remove("show");if(cur>=0)chips[cur].focus({preventScroll:true})}
+$("prev").onclick=()=>select(cur<0?0:cur-1,true);
+$("next").onclick=()=>select(cur<0?0:cur+1,true);
+$("mprev").onclick=()=>select(cur-1,true);
+$("mnext").onclick=()=>select(cur+1,true);
+$("mclose").onclick=close;
+ov.addEventListener("click",e=>{if(e.target===ov)close()});
+document.addEventListener("keydown",e=>{
+ const open=ov.classList.contains("show");
+ if(e.key==="Escape"&&open)close();
+ else if(e.key==="ArrowRight"||e.key==="ArrowDown"){select(cur<0?0:cur+1,open);e.preventDefault()}
+ else if(e.key==="ArrowLeft"||e.key==="ArrowUp"){select(cur<0?0:cur-1,open);e.preventDefault()}
+});
+addEventListener("resize",layout);layout();
+</script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>도형 돌리고 뒤집기 교구</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--ink:#1f2a44;--sub:#64718c;--pri:#3b6cf6;--pri2:#e8eefe;--ok:#1ea672;--bad:#e5484d;--line:#d9e0ee}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:960px;margin:0 auto;padding:16px}
+h1{font-size:clamp(1.3rem,4vw,1.8rem);margin:4px 0 2px}
+.desc{color:var(--sub);margin:0 0 14px;font-size:.95rem}
+.card{background:var(--card);border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(30,50,100,.07);margin-bottom:12px}
+.tabs{display:flex;gap:8px}
+.tab{flex:1;padding:12px;border:2px solid var(--line);background:#fff;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer;color:var(--sub)}
+.tab.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.label{font-size:.85rem;color:var(--sub);font-weight:700;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:9px 14px;border-radius:999px;border:2px solid var(--line);background:#fff;font-size:.95rem;cursor:pointer;font-weight:600}
+.chip.on{background:var(--pri2);border-color:var(--pri);color:var(--pri)}
+.boards{display:grid;grid-template-columns:1fr;gap:12px}
+.boards.quiz{grid-template-columns:1fr 1fr}
+.board h3{margin:0 0 6px;font-size:1rem;text-align:center}
+svg{width:100%;height:auto;aspect-ratio:1;background:#fbfcff;border:2px solid var(--line);border-radius:14px;display:block}
+.boards:not(.quiz) .board{max-width:460px;margin:0 auto;width:100%}
+.ctrl{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.btn{padding:14px 6px;border:none;border-radius:12px;background:var(--pri);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;line-height:1.3}
+.btn small{display:block;font-weight:500;opacity:.85;font-size:.75rem}
+.btn.alt{background:#fff;color:var(--pri);border:2px solid var(--pri)}
+.btn.gray{background:#eef1f7;color:var(--ink)}
+.btn.ok{background:var(--ok)}
+.btn:active{transform:scale(.96)}
+.btn:disabled{opacity:.4;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.row .btn{flex:1;min-width:110px}
+.status{font-size:1.05rem;font-weight:700;text-align:center;padding:10px;background:var(--pri2);border-radius:12px}
+.msg{min-height:3em;text-align:center;font-weight:700;padding:10px;border-radius:12px;background:#f1f3f9;margin-top:8px}
+.msg.ok{background:#e3f7ee;color:var(--ok)}.msg.bad{background:#fdeced;color:var(--bad)}
+.hdr{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.score{font-weight:800;color:var(--pri)}
+select{padding:8px;border-radius:10px;border:2px solid var(--line);font-size:.95rem;background:#fff}
+.opts{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:10px;font-size:.9rem}
+.opts label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.hidden{display:none!important}
+@media(max-width:560px){.ctrl{grid-template-columns:repeat(2,1fr)}.boards.quiz{gap:8px}.card{padding:10px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔷 도형 돌리고 뒤집기</h1>
+  <p class="desc">도형을 돌리고 뒤집어 보면서 위치와 모양이 어떻게 바뀌는지 확인해 보세요.</p>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab on" id="tabP">🧩 연습 모드</button>
+      <button class="tab" id="tabQ">🎯 퀴즈 모드</button>
+    </div>
+  </div>
+
+  <div class="card" id="shapeCard">
+    <div class="label">도형 고르기</div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="card">
+    <div class="hdr hidden" id="qHdr" style="margin-bottom:8px">
+      <span class="score" id="score"></span>
+      <label>난이도 <select id="level">
+        <option value="1">쉬움 (90° 회전)</option>
+        <option value="2" selected>보통 (회전+뒤집기)</option>
+        <option value="3">어려움 (45° 단위)</option>
+      </select></label>
+    </div>
+    <div class="boards" id="boards">
+      <div class="board hidden" id="tBoard"><h3>🎯 목표 모양</h3><svg id="svgT" viewBox="-110 -110 220 220"></svg></div>
+      <div class="board"><h3 id="mTitle">내 도형</h3><svg id="svgM" viewBox="-110 -110 220 220"></svg></div>
+    </div>
+    <div class="opts">
+      <label>한 번에 돌리는 각도
+        <select id="step"><option value="90">90°</option><option value="45">45°</option></select>
+      </label>
+      <label><input type="checkbox" id="ghost" checked> 처음 위치 점선</label>
+      <label><input type="checkbox" id="lbl" checked> 꼭짓점 글자</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ctrl">
+      <button class="btn" id="bCCW">↺ 반시계<small>왼쪽으로 돌리기</small></button>
+      <button class="btn" id="bCW">↻ 시계<small>오른쪽으로 돌리기</small></button>
+      <button class="btn alt" id="bFH">↔ 좌우 뒤집기<small>거울(세로축)</small></button>
+      <button class="btn alt" id="bFV">↕ 상하 뒤집기<small>거울(가로축)</small></button>
+    </div>
+    <div class="row">
+      <button class="btn gray" id="bReset">처음으로</button>
+      <button class="btn ok hidden" id="bCheck">정답 확인</button>
+      <button class="btn gray hidden" id="bHint">힌트</button>
+      <button class="btn gray hidden" id="bNext">다음 문제</button>
+    </div>
+    <div class="status" id="status" style="margin-top:10px"></div>
+    <div class="msg hidden" id="msg"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+const NS='http://www.w3.org/2000/svg';
+const SHAPES={};
+function reg(id,name,p){const cx=p.reduce((s,q)=>s+q[0],0)/p.length,cy=p.reduce((s,q)=>s+q[1],0)/p.length;SHAPES[id]={name,p:p.map(q=>[q[0]-cx,q[1]-cy])}}
+reg('tri','직각삼각형',[[-60,-60],[-60,60],[60,60]]);
+reg('sq','정사각형',[[-60,-60],[60,-60],[60,60],[-60,60]]);
+reg('pent','정오각형',[0,1,2,3,4].map(i=>{const a=(-90+72*(i+1))*Math.PI/180;return[75*Math.cos(a),75*Math.sin(a)]}));
+reg('para','평행사변형',[[-75,-40],[35,-40],[75,40],[-35,40]]);
+reg('L','ㄴ자 도형',[[-50,-70],[-10,-70],[-10,30],[50,30],[50,70],[-50,70]]);
+reg('house','집 모양',[[0,-75],[65,-20],[65,65],[-65,65],[-65,-20]]);
+
+const I=[1,0,0,1];
+const mul=(P,Q)=>[P[0]*Q[0]+P[1]*Q[2],P[0]*Q[1]+P[1]*Q[3],P[2]*Q[0]+P[3]*Q[2],P[2]*Q[1]+P[3]*Q[3]];
+const rot=d=>{const r=d*Math.PI/180,c=Math.cos(r),s=Math.sin(r);return[c,-s,s,c]};
+const FH=[-1,0,0,1],FV=[1,0,0,-1];
+const snap=M=>M.map(v=>Math.round(v*1e6)/1e6+0);
+const app=(M,p)=>[M[0]*p[0]+M[1]*p[1],M[2]*p[0]+M[3]*p[1]];
+const $=id=>document.getElementById(id);
+
+let mode='P',shapeId='tri',M=I,anim=null,target=I,qNo=0,qOk=0,solved=false,tries=0;
+
+function describe(M){
+  const det=M[0]*M[3]-M[1]*M[2];
+  let a=det>0?Math.atan2(M[2],M[0]):Math.atan2(-M[2],-M[0]);
+  a=Math.round(a*180/Math.PI);a=((a%360)+360)%360;
+  const mir=det<0;
+  if(!mir&&a===0)return'처음 모양과 같아요';
+  if(!mir)return`시계방향으로 ${a}° 돌린 모양`;
+  return a===0?'좌우로 뒤집은 모양':`좌우로 뒤집은 뒤 시계방향 ${a}° 돌린 모양`;
+}
+
+function el(n,at,par){const e=document.createElementNS(NS,n);for(const k in at)e.setAttribute(k,at[k]);par&&par.appendChild(e);return e}
+function draw(svg,Mx,showGhost,showLbl,color){
+  svg.innerHTML='';
+  for(let v=-100;v<=100;v+=20){
+    el('line',{x1:v,y1:-100,x2:v,y2:100,stroke:v===0?'#b5c0d9':'#e6ebf5','stroke-width':v===0?1.2:.6,'stroke-dasharray':v===0?'4 3':''},svg);
+    el('line',{x1:-100,y1:v,x2:100,y2:v,stroke:v===0?'#b5c0d9':'#e6ebf5','stroke-width':v===0?1.2:.6,'stroke-dasharray':v===0?'4 3':''},svg);
+  }
+  const base=SHAPES[shapeId].p;
+  if(showGhost)el('polygon',{points:base.map(p=>p.join(',')).join(' '),fill:'none',stroke:'#9aa6c4','stroke-width':1.5,'stroke-dasharray':'5 4'},svg);
+  const pts=base.map(p=>app(Mx,p));
+  el('polygon',{points:pts.map(p=>p.join(',')).join(' '),fill:color,'fill-opacity':.55,stroke:color,'stroke-width':2.5,'stroke-linejoin':'round'},svg);
+  pts.forEach((p,i)=>{
+    el('circle',{cx:p[0],cy:p[1],r:i===0?5.5:3,fill:i===0?'#e5484d':'#1f2a44'},svg);
+    if(showLbl){
+      const c=pts.reduce((s,q)=>[s[0]+q[0]/pts.length,s[1]+q[1]/pts.length],[0,0]);
+      let dx=p[0]-c[0],dy=p[1]-c[1],l=Math.hypot(dx,dy)||1;
+      const t=el('text',{x:p[0]+dx/l*12,y:p[1]+dy/l*12+4,'text-anchor':'middle','font-size':12,'font-weight':700,fill:'#1f2a44'},svg);
+      t.textContent='ABCDEF'[i];
+    }
+  });
+}
+
+function curM(now){
+  if(!anim)return M;
+  let t=Math.min(1,(now-anim.t0)/anim.dur);
+  const e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+  return mul(anim.part(e),anim.from);
+}
+function render(now){
+  draw($('svgM'),curM(now||0),$('ghost').checked,$('lbl').checked,'#3b6cf6');
+  if(mode==='Q')draw($('svgT'),target,$('ghost').checked,$('lbl').checked,'#f59e0b');
+}
+function loop(now){
+  if(!anim)return;
+  if(now-anim.t0>=anim.dur){M=anim.to;anim=null;render();updateStatus();return}
+  render(now);requestAnimationFrame(loop);
+}
+function doOp(kind){
+  if(solved&&mode==='Q')return;
+  if(anim){M=anim.to;anim=null}
+  const s=mode==='Q'?stepQ():+$('step').value;
+  let op,part;
+  if(kind==='cw'){op=rot(s);part=e=>rot(s*e)}
+  else if(kind==='ccw'){op=rot(-s);part=e=>rot(-s*e)}
+  else if(kind==='fh'){op=FH;part=e=>[1-2*e,0,0,1]}
+  else{op=FV;part=e=>[1,0,0,1-2*e]}
+  anim={from:M,to:snap(mul(op,M)),part,t0:performance.now(),dur:380};
+  requestAnimationFrame(loop);
+}
+function updateStatus(){
+  $('status').textContent='지금 모양: '+describe(M);
+}
+function stepQ(){return $('level').value==='3'?45:90}
+
+function same(A,B){
+  const b=SHAPES[shapeId].p;
+  return b.every(p=>{const u=app(A,p),v=app(B,p);return Math.hypot(u[0]-v[0],u[1]-v[1])<1.5});
+}
+function newQuestion(){
+  const lv=+$('level').value,ids=Object.keys(SHAPES);
+  shapeId=ids[Math.floor(Math.random()*ids.length)];
+  const s=lv===3?45:90,n=360/s;
+  let T;
+  do{
+    T=rot(s*Math.floor(Math.random()*n));
+    if(lv>=2){
+      const r=Math.random();
+      if(r<.4)T=mul(T,FH);else if(r<.7)T=mul(T,FV);
+      else if(r<.85)T=mul(T,mul(FH,FV));
+    }
+    T=snap(T);
+  }while(same(T,I));
+  target=T;M=I;anim=null;solved=false;tries=0;qNo++;
+  $('score').textContent=`${qNo}번째 문제 · 맞힌 개수 ${qOk}`;
+  $('step').value=String(stepQ());
+  $('msg').className='msg';$('msg').textContent='파란 도형을 움직여서 주황색 목표 모양과 똑같이 겹치게 만들어 보세요!';
+  $('bNext').classList.add('hidden');$('bCheck').disabled=false;
+  $('chips').querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.id===shapeId));
+  render();updateStatus();
+}
+function check(){
+  if(solved)return;
+  if(anim){M=anim.to;anim=null}
+  tries++;
+  if(same(M,target)){
+    solved=true;qOk++;
+    $('score').textContent=`${qNo}번째 문제 · 맞힌 개수 ${qOk}`;
+    $('msg').className='msg ok';
+    $('msg').textContent='🎉 정답이에요! 목표는 "'+describe(target)+'"이었어요.';
+    $('bNext').classList.remove('hidden');$('bCheck').disabled=true;
+  }else{
+    $('msg').className='msg bad';
+    $('msg').textContent=`아직 달라요 (${tries}번째 시도). 점 A(빨간 점)의 위치를 목표와 비교해 보세요.`;
+  }
+  render();
+}
+function hint(){
+  const det=target[0]*target[3]-target[1]*target[2];
+  $('msg').className='msg';
+  $('msg').textContent=det<0?'💡 뒤집기가 꼭 필요한 모양이에요. 글자 순서(A→B→C)가 반대로 돌아가는지 보세요.':'💡 뒤집지 않고 돌리기만으로 만들 수 있어요.';
+}
+function setMode(m){
+  mode=m;
+  $('tabP').classList.toggle('on',m==='P');$('tabQ').classList.toggle('on',m==='Q');
+  $('tBoard').classList.toggle('hidden',m==='P');
+  $('boards').classList.toggle('quiz',m==='Q');
+  $('qHdr').classList.toggle('hidden',m==='P');
+  $('shapeCard').classList.toggle('hidden',m==='Q');
+  ['bCheck','bHint'].forEach(i=>$(i).classList.toggle('hidden',m==='P'));
+  $('bNext').classList.add('hidden');
+  $('step').disabled=m==='Q';
+  $('mTitle').textContent=m==='Q'?'🔷 내 도형':'내 도형';
+  $('msg').classList.toggle('hidden',m==='P');
+  if(m==='Q'){qNo=0;qOk=0;newQuestion()}
+  else{M=I;anim=null;shapeId=shapeId;$('step').value='90';buildChips();render();updateStatus()}
+}
+function buildChips(){
+  const c=$('chips');c.innerHTML='';
+  Object.keys(SHAPES).forEach(id=>{
+    const b=document.createElement('button');b.className='chip'+(id===shapeId?' on':'');b.dataset.id=id;b.textContent=SHAPES[id].name;
+    b.onclick=()=>{if(mode!=='P')return;shapeId=id;M=I;anim=null;buildChips();render();updateStatus()};
+    c.appendChild(b);
+  });
+}
+$('bCW').onclick=()=>doOp('cw');$('bCCW').onclick=()=>doOp('ccw');
+$('bFH').onclick=()=>doOp('fh');$('bFV').onclick=()=>doOp('fv');
+$('bReset').onclick=()=>{M=I;anim=null;if(solved)return;render();updateStatus()};
+$('bCheck').onclick=check;$('bHint').onclick=hint;$('bNext').onclick=newQuestion;
+$('tabP').onclick=()=>setMode('P');$('tabQ').onclick=()=>setMode('Q');
+$('level').onchange=()=>{qNo=Math.max(0,qNo-1);newQuestion()};
+$('ghost').onchange=$('lbl').onchange=()=>render();
+buildChips();render();updateStatus();
+})();
+</script>
+</body>
+</html>
