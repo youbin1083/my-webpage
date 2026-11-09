@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>주사위 확률 실험실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f2b24; --felt:#2a6a54; --felt-d:#16463a; --ivory:#f6f1e3; --ink:#1e2a25;
+  --chalk:#f2c14e; --red:#c8372d; --muted:#6b7a72; --line:#d9d1bb;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ivory);font-family:"Noto Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 40px}
+header{margin-bottom:18px}
+h1{margin:0;font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;letter-spacing:-.02em}
+header p{margin:4px 0 0;color:#b9cbc2;font-size:1rem}
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+#stage{position:relative;aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:radial-gradient(ellipse at 50% 60%,var(--felt) 0%,var(--felt-d) 100%);box-shadow:inset 0 0 0 3px #0c2a22}
+#stage canvas{display:block;width:100%;height:100%}
+#last{position:absolute;left:14px;top:12px;font-size:.95rem;color:#d7e6de}
+#last strong{font-size:1.9rem;color:var(--chalk);margin-left:6px;font-variant-numeric:tabular-nums}
+.controls{margin-top:14px;display:grid;gap:10px}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.custom{display:grid;grid-template-columns:1fr auto;gap:10px}
+button,input{font:inherit}
+button{min-height:46px;padding:0 16px;border:0;border-radius:10px;background:var(--chalk);color:#2a2410;font-weight:700;cursor:pointer;transition:transform .08s,filter .15s}
+button:hover:not(:disabled){filter:brightness(1.08)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--ivory);box-shadow:inset 0 0 0 2px #5d8576}
+input{min-height:46px;width:100%;padding:0 14px;border-radius:10px;border:2px solid #5d8576;background:#0c2a22;color:var(--ivory)}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+#msg{min-height:1.4em;margin:0;font-size:.9rem;color:#ffd9a8}
+.panel{background:var(--ivory);color:var(--ink);border-radius:16px;padding:18px}
+.panel+.panel{margin-top:18px}
+h2{margin:0 0 12px;font-size:1.1rem;font-weight:700}
+.total{font-weight:500;color:var(--muted);font-size:.95rem;margin-left:8px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;text-align:right;font-size:.95rem}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line)}
+th{font-weight:700;color:var(--muted);font-size:.85rem}
+th:first-child,td:first-child{text-align:left}
+tfoot td{font-weight:700;border-bottom:0}
+.plot{position:relative;height:230px;margin-top:26px;display:grid;grid-template-columns:repeat(6,1fr);gap:10px;border-bottom:2px solid var(--ink)}
+.col{position:relative;height:100%}
+.bar{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--felt);border-radius:6px 6px 0 0;transition:height .12s linear}
+.bar b{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);padding-bottom:3px;font-size:.78rem;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ref{position:absolute;left:0;right:0;bottom:0;border-top:2px dashed var(--red);pointer-events:none;transition:bottom .12s linear}
+.ref span{position:absolute;right:0;bottom:2px;font-size:.72rem;color:var(--red);background:var(--ivory);padding:0 3px;font-weight:700}
+.axis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;text-align:center;margin-top:6px;font-weight:700}
+.note{margin:12px 0 0;color:var(--muted);font-size:.85rem}
+@media (prefers-reduced-motion:reduce){.bar,.ref{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>주사위 확률 실험실</h1>
+    <p>많이 굴릴수록 각 눈의 비율은 1/6(약 16.67%)에 가까워질까요?</p>
+  </header>
+
+  <div class="grid">
+    <section aria-label="주사위와 조작">
+      <div id="stage">
+        <canvas id="cv" aria-label="3D 주사위"></canvas>
+        <div id="last" aria-live="polite">나온 눈<strong id="lastv">–</strong></div>
+      </div>
+      <div class="controls">
+        <div class="row">
+          <button data-n="1">1회 굴리기</button>
+          <button data-n="10">10회 굴리기</button>
+          <button data-n="100">100회 굴리기</button>
+        </div>
+        <div class="custom">
+          <input id="custom" type="number" min="1" max="100000" step="1" value="1000" inputmode="numeric" aria-label="굴릴 횟수 (1~100000)">
+          <button id="customGo">횟수 지정 굴리기</button>
+        </div>
+        <button id="reset" class="ghost">결과 초기화</button>
+        <p id="msg" role="status"></p>
+      </div>
+    </section>
+
+    <section aria-label="결과">
+      <div class="panel">
+        <h2>눈별 출현 횟수<span class="total" id="total">전체 0회</span></h2>
+        <div class="tw">
+          <table>
+            <thead><tr><th>눈</th><th>횟수</th><th>비율(%)</th><th>이론값과 차이</th></tr></thead>
+            <tbody id="tb"></tbody>
+            <tfoot><tr><td>합계</td><td id="sumN">0</td><td id="sumP">0.00</td><td></td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>비율 막대그래프</h2>
+        <div class="plot" id="plot"><div class="ref" id="ref"><span>이론값 16.67%</span></div></div>
+        <div class="axis" id="axis"></div>
+        <p class="note">점선은 이론 확률 1/6입니다. 막대 위 숫자는 각 눈이 나온 비율(%)이에요.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  const THEORY = 100/6, MAX_N = 100000;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = id => document.getElementById(id);
+  const msg = $('msg');
+
+  /* ---------- 통계 UI ---------- */
+  const counts = [0,0,0,0,0,0];
+  const tb = $('tb'), plot = $('plot'), axis = $('axis'), ref = $('ref');
+  const cells = [], bars = [];
+  for(let i=1;i<=6;i++){
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+i+'</td><td></td><td></td><td></td>';
+    tb.appendChild(tr); cells.push(tr.children);
+    const col = document.createElement('div'); col.className = 'col';
+    col.innerHTML = '<div class="bar"><b>0.0%</b></div>';
+    plot.insertBefore(col, ref); bars.push(col.firstChild);
+    const a = document.createElement('div'); a.textContent = i; axis.appendChild(a);
+  }
+  function fmt(n){return n.toLocaleString('ko-KR')}
+  function updateStats(){
+    const total = counts.reduce((a,b)=>a+b,0);
+    const pcts = counts.map(c => total ? c/total*100 : 0);
+    const scale = Math.max(25, Math.ceil((Math.max(...pcts)+4)/5)*5);
+    counts.forEach((c,i)=>{
+      const p = pcts[i], d = total ? p-THEORY : 0;
+      cells[i][1].textContent = fmt(c);
+      cells[i][2].textContent = p.toFixed(2);
+      cells[i][3].textContent = total ? (d>0?'+':'')+d.toFixed(2)+'%p' : '–';
+      bars[i].style.height = (p/scale*100)+'%';
+      bars[i].firstChild.textContent = p.toFixed(1)+'%';
+    });
+    ref.style.bottom = (THEORY/scale*100)+'%';
+    $('total').textContent = '전체 '+fmt(total)+'회';
+    $('sumN').textContent = fmt(total);
+    $('sumP').textContent = total ? '100.00' : '0.00';
+  }
+  updateStats();
+
+  /* ---------- 3D 주사위 ---------- */
+  if(typeof THREE === 'undefined'){
+    msg.textContent = '3D 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.';
+    return;
+  }
+  const stage = $('stage'), cv = $('cv');
+  const renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 4/3, .1, 50);
+  camera.position.set(0, 5.2, 5.6); camera.lookAt(0, .5, 0);
+  scene.add(new THREE.AmbientLight(0xffffff, .75));
+  const sun = new THREE.DirectionalLight(0xffffff, .85); sun.position.set(3,6,4); scene.add(sun);
+
+  const PIPS = {1:[[1,1]],2:[[0,0],[2,2]],3:[[0,0],[1,1],[2,2]],4:[[0,0],[2,0],[0,2],[2,2]],
+    5:[[0,0],[2,0],[1,1],[0,2],[2,2]],6:[[0,0],[2,0],[0,1],[2,1],[0,2],[2,2]]};
+  function faceMat(n){
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const g = c.getContext('2d');
+    g.fillStyle = '#f6f1e3'; g.fillRect(0,0,256,256);
+    g.strokeStyle = '#d9d1bb'; g.lineWidth = 10; g.strokeRect(5,5,246,246);
+    g.fillStyle = n===1 ? '#c8372d' : '#1b1f1d';
+    PIPS[n].forEach(([x,y])=>{g.beginPath(); g.arc(64+x*64, 64+y*64, n===1?34:22, 0, 7); g.fill();});
+    const t = new THREE.CanvasTexture(c); t.anisotropy = 4;
+    return new THREE.MeshStandardMaterial({map:t, roughness:.45});
+  }
+  // BoxGeometry 면 순서: +x, -x, +y, -y, +z, -z  (마주 보는 면의 합 = 7)
+  const dice = new THREE.Mesh(new THREE.BoxGeometry(1.6,1.6,1.6), [3,4,1,6,2,5].map(faceMat));
+  dice.position.y = .8;
+  dice.quaternion.setFromEuler(new THREE.Euler(.5,.7,.2));
+  scene.add(dice);
+  const NORM = {1:[0,1,0], 6:[0,-1,0], 3:[1,0,0], 4:[-1,0,0], 2:[0,0,1], 5:[0,0,-1]};
+
+  const sc = document.createElement('canvas'); sc.width = sc.height = 128;
+  const sg = sc.getContext('2d'), grd = sg.createRadialGradient(64,64,4,64,64,62);
+  grd.addColorStop(0,'rgba(0,0,0,.55)'); grd.addColorStop(1,'rgba(0,0,0,0)');
+  sg.fillStyle = grd; sg.fillRect(0,0,128,128);
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(3.4,3.4),
+    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(sc), transparent:true, depthWrite:false}));
+  shadow.rotation.x = -Math.PI/2; shadow.position.y = .01; scene.add(shadow);
+
+  function resize(){
+    const w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  const UP = new THREE.Vector3(0,1,0);
+  let anim = null;
+  function rollTo(v, dur, done){
+    const qa = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(...NORM[v]), UP);
+    const qy = new THREE.Quaternion().setFromAxisAngle(UP, Math.random()*Math.PI*2);
+    anim = {
+      t0: performance.now(), dur, done,
+      qf: qy.multiply(qa),
+      axis: new THREE.Vector3(Math.random()-.5, Math.random()-.5, Math.random()-.5).normalize(),
+      ang: reduce ? 0 : (4+Math.random()*3)*Math.PI,
+      h: reduce ? 0 : 1.7
+    };
+  }
+  const qt = new THREE.Quaternion();
+  function frame(now){
+    if(anim){
+      const t = Math.min(1,(now-anim.t0)/anim.dur), e = 1-Math.pow(1-t,3);
+      qt.setFromAxisAngle(anim.axis, anim.ang*(1-e)).multiply(anim.qf);
+      dice.quaternion.copy(qt);
+      const hop = Math.abs(Math.sin(Math.PI*t*1.5))*anim.h*(1-t);
+      dice.position.y = .8 + hop;
+      const s = 1 - hop*.18; shadow.scale.set(s,s,s); shadow.material.opacity = 1 - hop*.25;
+      if(t>=1){const d = anim.done; anim = null; d && d();}
+    }
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  /* ---------- 시뮬레이션 ---------- */
+  const rnd = () => 1 + Math.floor(Math.random()*6);
+  const btns = [...document.querySelectorAll('button')];
+  let busy = false;
+  function lock(b){busy = b; btns.forEach(x => x.disabled = b); $('custom').disabled = b;}
+
+  function run(n){
+    if(busy) return;
+    if(!Number.isInteger(n) || n<1 || n>MAX_N){
+      msg.textContent = '횟수는 1 이상 '+fmt(MAX_N)+' 이하의 정수로 입력해 주세요.'; return;
+    }
+    msg.textContent = ''; lock(true); $('lastv').textContent = '…';
+    const last = rnd(), dur = n===1 ? 1100 : 1600, t0 = performance.now();
+    let done = 0;
+    rollTo(last, dur);
+    (function step(now){
+      const f = Math.min(1,(now-t0)/dur), target = f>=1 ? n : Math.floor(n*f);
+      for(; done<target; done++) counts[(done===n-1 ? last : rnd())-1]++;
+      updateStats();
+      if(done<n){requestAnimationFrame(step); return;}
+      const wait = () => anim ? requestAnimationFrame(wait) : (()=>{
+        $('lastv').textContent = last; lock(false);
+        msg.textContent = n===1 ? '' : fmt(n)+'회 굴리기 완료 (마지막 눈: '+last+')';
+      })();
+      wait();
+    })(t0);
+  }
+
+  document.querySelectorAll('[data-n]').forEach(b => b.addEventListener('click', () => run(+b.dataset.n)));
+  const custom = $('custom');
+  $('customGo').addEventListener('click', () => run(Number(custom.value)));
+  custom.addEventListener('keydown', e => {if(e.key==='Enter') run(Number(custom.value));});
+  $('reset').addEventListener('click', () => {
+    if(busy) return;
+    counts.fill(0); updateStats(); $('lastv').textContent = '–'; msg.textContent = '결과를 초기화했어요.';
+  });
+})();
+</script>
+</body>
+</html>

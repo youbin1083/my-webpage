@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>과자집 시계 읽기</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<style>
+:root{--bg:#fff8e7;--bgimg:repeating-linear-gradient(45deg,rgba(255,255,255,.05) 0 14px,rgba(255,255,255,0) 14px 28px),linear-gradient(160deg,#4a2c1d,#2f1a12 60%,#3b2218);--hcol:#5a2e16;--mcol:#e0567a;--card:#fff3dc;--ink:#3b2418;--sub:#8a6a55;--pri:#d9663a;--ok:#2fa84f;--bad:#e5484d;--line:#ecd2ad;--hint:#fff3c4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){}}
+:root[data-theme="dark"]{}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bgimg);background-attachment:fixed;color:var(--ink);font-family:"Jua","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;min-height:100vh;padding:16px}
+main{max-width:920px;margin:0 auto}
+h1{font-size:clamp(22px,4.8vw,36px);text-align:center;margin:4px 0 14px;color:#ffd9a8;text-shadow:3px 3px 0 #7a3e22;letter-spacing:1px}h1 span{display:inline-block;animation:wig 1.6s ease-in-out infinite}h1 span:last-child{animation-delay:.8s}@keyframes wig{50%{transform:rotate(18deg) scale(1.15)}}
+.levels{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:14px}
+.levels button{flex:1 1 120px;max-width:200px;padding:12px 8px;font-size:clamp(15px,2.6vw,18px);font-weight:700;border:3px solid var(--line);background:var(--card);color:var(--ink);border-radius:14px;cursor:pointer}
+.levels button{transition:transform .15s}.levels button:hover{transform:translateY(-3px) rotate(-1.5deg)}.levels button.on{border-color:#fff;background:var(--pri);color:#fff;box-shadow:0 5px 0 rgba(0,0,0,.18);transform:scale(1.05)}.levels button:last-child.on{background:linear-gradient(90deg,#e0567a,#e8a33d,#b5683a)}
+.levels small{display:block;font-weight:400;font-size:.8em;opacity:.85}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:30px;padding:18px;border:6px solid #c58a52;box-shadow:inset 0 0 0 3px #fff,0 7px 0 rgba(0,0,0,.15)}.tg{display:block;margin:10px auto 0;padding:9px 16px;font-size:16px;font-family:inherit;font-weight:700;border:3px solid var(--line);border-radius:999px;background:var(--bg);color:var(--ink);cursor:pointer}#lg{text-align:center;font-size:15px;color:var(--sub);margin:8px 0 0}
+svg{width:100%;height:auto;max-width:420px;display:block;margin:0 auto}
+.face{fill:var(--card);stroke:#b9763d;stroke-width:12}
+.num{font-size:26px;font-weight:700;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+.hand{transition:transform .5s ease;transform-origin:150px 150px}
+.q{font-size:clamp(18px,3.4vw,24px);font-weight:700;text-align:center;margin:0 0 12px}#badge{display:table;margin:0 auto 8px;padding:4px 14px;border-radius:999px;background:var(--pri);color:#fff;font-size:15px}body.mono{--hcol:var(--ink);--mcol:var(--ink)}
+.inp{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;font-size:clamp(18px,3.4vw,24px);font-weight:700}
+input{width:84px;font-size:28px;text-align:center;padding:10px 4px;border:3px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font-family:inherit}
+input:focus{outline:none;border-color:var(--pri)}
+.act{display:flex;gap:8px;margin-top:14px}
+.act button{flex:1;padding:14px;font-size:20px;font-weight:700;border:0;border-radius:14px;cursor:pointer;color:#fff;background:var(--pri);font-family:inherit}
+.act button.alt{background:var(--sub)}
+button:disabled{opacity:.5;cursor:default}
+#msg{min-height:30px;text-align:center;font-size:clamp(17px,3vw,22px);font-weight:700;margin:12px 0 0}
+#msg.ok{color:var(--ok)}#msg.bad{color:var(--bad)}
+#hint{display:none;margin-top:10px;padding:12px;border-radius:12px;background:var(--hint);font-size:clamp(15px,2.6vw,18px);line-height:1.6}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;text-align:center}
+.stats div{background:var(--bg);border-radius:12px;padding:8px;font-size:14px;color:var(--sub)}
+.stats b{display:block;font-size:26px;color:var(--ink)}
+#st-ok{color:var(--ok)}#st-bad{color:var(--bad)}
+.fx{position:fixed;bottom:-60px;font-size:40px;pointer-events:none;animation:up 2s ease-in forwards;z-index:9}
+@keyframes up{to{transform:translateY(-115vh) rotate(25deg);opacity:.9}}
+.pop{position:fixed;font-size:32px;pointer-events:none;animation:pop 1.4s ease-out forwards;z-index:9}
+@keyframes pop{0%{transform:translate(0,0) scale(.4);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0}}
+</style>
+</head>
+<body>
+<main>
+<h1><span>🍭</span> 헨젤과 그레텔의 과자집 시계 <span>🏠</span></h1>
+<div class="levels" id="levels"></div>
+<div class="grid">
+  <div class="card">
+    <svg viewBox="0 0 300 300" role="img" aria-label="아날로그 시계">
+      <circle class="face" cx="150" cy="150" r="140"/>
+      <circle cx="150" cy="150" r="140" fill="none" stroke="#fff" stroke-width="2.5" opacity=".9"/><g stroke="#fff" stroke-width="2"><circle cx="150" cy="10" r="7" fill="#e0567a"/><circle cx="290" cy="150" r="7" fill="#8fd3b0"/><circle cx="150" cy="290" r="7" fill="#f6c85f"/><circle cx="10" cy="150" r="7" fill="#8fd3b0"/></g>
+      <g id="ticks"></g><g id="nums"></g>
+      <g class="hand" id="hh"><rect x="145" y="146" width="10" height="30" rx="3" fill="#f0c987"/><rect x="141" y="104" width="18" height="52" rx="9" fill="var(--hcol)" stroke="rgba(0,0,0,.3)"/><g fill="#fff"><circle cx="147" cy="114" r="1.7"/><circle cx="153" cy="124" r="1.7"/><circle cx="147" cy="134" r="1.7"/></g></g>
+      <g class="hand" id="mh"><rect x="146" y="148" width="8" height="34" rx="3" fill="#f0c987"/><rect x="143" y="76" width="14" height="82" rx="7" fill="var(--mcol)" stroke="rgba(0,0,0,.3)"/><g fill="#fff"><circle cx="148" cy="88" r="1.5"/><circle cx="152" cy="102" r="1.5"/><circle cx="148" cy="116" r="1.5"/><circle cx="152" cy="130" r="1.5"/></g></g>
+      <circle cx="150" cy="150" r="9" fill="#e0567a" stroke="#fff" stroke-width="3"/>
+    </svg>
+    <p id="lg">🍫 초코 빼빼로(짧은 바늘) = 시 · 🍓 딸기 빼빼로(긴 바늘) = 분</p>
+    <button id="tg" class="tg">🎨 바늘 색깔 켜짐</button>
+  </div>
+  <div class="card">
+    <div id="badge"></div>
+    <p class="q">지금 몇 시 몇 분일까요?</p>
+    <div class="inp">
+      <input id="ih" type="number" inputmode="numeric" min="1" max="12" aria-label="시"> 시
+      <input id="im" type="number" inputmode="numeric" min="0" max="59" aria-label="분"> 분
+    </div>
+    <div class="act"><button id="chk">정답 확인</button><button id="nxt" class="alt" disabled>다음 문제</button></div>
+    <p id="msg"></p>
+    <div id="hint"></div>
+    <div class="stats">
+      <div>총 문제<b id="st-t">0</b></div>
+      <div>맞춘 정답<b id="st-ok">0</b></div>
+      <div>오답<b id="st-bad">0</b></div>
+    </div>
+  </div>
+</div>
+</main>
+<script>
+(function(){
+var NS="http://www.w3.org/2000/svg",$=function(i){return document.getElementById(i)};
+var LV=[["1단계","정시"],["2단계","30분 단위"],["3단계","5분 단위"],["4단계","1분 단위"],["🎲 랜덤","1~4단계 섞기"]];
+var level=0,H=3,M=0,done=true,stat={t:0,ok:0,bad:0},timer=null;
+// 눈금과 숫자
+var tk=$("ticks"),nm=$("nums");
+for(var i=0;i<60;i++){
+  var a=i*6*Math.PI/180,big=i%5===0,r1=big?118:124,r2=134;
+  var l=document.createElementNS(NS,"line");
+  l.setAttribute("x1",150+r1*Math.sin(a));l.setAttribute("y1",150-r1*Math.cos(a));
+  l.setAttribute("x2",150+r2*Math.sin(a));l.setAttribute("y2",150-r2*Math.cos(a));
+  l.setAttribute("stroke","var(--ink)");l.setAttribute("stroke-width",big?3.5:1.5);
+  tk.appendChild(l);
+}
+for(var n=1;n<=12;n++){
+  var b=n*30*Math.PI/180,t=document.createElementNS(NS,"text");
+  t.setAttribute("class","num");t.setAttribute("x",150+98*Math.sin(b));t.setAttribute("y",150-98*Math.cos(b));
+  t.textContent=n;nm.appendChild(t);
+}
+// 레벨 버튼
+LV.forEach(function(v,i){
+  var b=document.createElement("button");
+  b.innerHTML=v[0]+"<small>"+v[1]+"</small>";
+  b.onclick=function(){level=i;renderLevels();newQ()};
+  $("levels").appendChild(b);
+});
+function renderLevels(){[].forEach.call($("levels").children,function(b,i){b.className=i===level?"on":""})}
+// 시계 각도: 분침 = m*6, 시침 = (h%12)*30 + m*0.5
+function setClock(h,m){
+  $("mh").style.transform="rotate("+(m*6)+"deg)";
+  $("hh").style.transform="rotate("+((h%12)*30+m*0.5)+"deg)";
+}
+function rnd(n){return Math.floor(Math.random()*n)}
+function newQ(){
+  clearTimeout(timer);
+  var pH=H,pM=M,tries=0,lv=level===4?rnd(4):level;
+  do{
+    H=rnd(12)+1;
+    M=[0,[0,30][rnd(2)],rnd(12)*5,rnd(60)][lv];
+    tries++;
+  }while(H===pH&&M===pM&&tries<20);
+  setClock(H,M);
+  $("badge").textContent=LV[lv][0].replace("🎲 ","")+" · "+LV[lv][1];
+  done=false;
+  $("ih").value="";$("im").value="0";
+  $("ih").disabled=$("im").disabled=$("chk").disabled=false;$("nxt").disabled=true;
+  $("msg").textContent="";$("msg").className="";$("hint").style.display="none";
+  $("ih").focus();
+}
+function upd(){$("st-t").textContent=stat.t;$("st-ok").textContent=stat.ok;$("st-bad").textContent=stat.bad}
+function pad(m){return m<10?"0"+m:""+m}
+function lock(){$("ih").disabled=$("im").disabled=$("chk").disabled=true;$("nxt").disabled=false}
+function celebrate(){
+  var e=["🍭","🍬","🍪","🎈","🍫","🧁"];
+  for(var i=0;i<14;i++){
+    var d=document.createElement("div");d.className="fx";d.textContent=e[rnd(e.length)];
+    d.style.left=(rnd(92)+2)+"%";d.style.animationDelay=(Math.random()*.6)+"s";
+    document.body.appendChild(d);setTimeout(function(x){x.remove()},3000,d);
+  }
+  for(var j=0;j<24;j++){
+    var p=document.createElement("div");p.className="pop";p.textContent=["🎆","✨","🎉"][rnd(3)];
+    p.style.left=(25+rnd(50))+"%";p.style.top=(25+rnd(40))+"%";
+    p.style.setProperty("--dx",(rnd(300)-150)+"px");p.style.setProperty("--dy",(rnd(300)-150)+"px");
+    document.body.appendChild(p);setTimeout(function(x){x.remove()},1500,p);
+  }
+}
+function hintText(){
+  var mn=Math.round(M/5)%12||12,h2=H%12+1;
+  var s="① 긴 바늘(분침)을 보세요. 숫자 "+(M%5===0?(M===0?12:M/5):Math.floor(M/5)||12)+" ";
+  if(M===0){
+    return "① 긴 바늘이 12를 가리키면 0분, 즉 정각이에요.<br>② 짧은 바늘이 "+H+"을 정확히 가리키고 있어요. 그래서 "+H+"시예요!";
+  }
+  var base=Math.floor(M/5);
+  var t="① 긴 바늘(분침)은 숫자 "+(base===0?12:base)+(M%5?"에서 "+(M%5)+"칸 더 간 곳":"")+"을 가리켜요. 숫자 1칸은 5분이니까 "+(base*5)+(M%5?" + "+(M%5):"")+" = "+M+"분이에요.<br>";
+  t+="② 짧은 바늘(시침)은 "+H+"과 "+h2+" 사이에 있어요. 아직 "+h2+"에 도착하지 않았으니 "+H+"시예요!";
+  return t;
+}
+function check(){
+  if(done)return;
+  var h=$("ih").value,m=$("im").value;
+  if(h===""||m===""){$("msg").className="bad";$("msg").textContent="시와 분을 모두 입력해 주세요!";return}
+  h=parseInt(h,10);m=parseInt(m,10);
+  done=true;stat.t++;lock();
+  if(h===H&&m===M){
+    stat.ok++;$("msg").className="ok";$("msg").textContent="🎉 정답이에요! "+H+"시 "+M+"분";
+    celebrate();timer=setTimeout(newQ,2000);
+  }else{
+    stat.bad++;$("msg").className="bad";
+    $("msg").textContent="앗, 아쉬워요! 정답은 "+H+"시 "+M+"분이에요.";
+    $("hint").innerHTML="💡 <b>힌트</b><br>"+hintText();$("hint").style.display="block";
+  }
+  upd();
+}
+$("chk").onclick=check;$("nxt").onclick=newQ;
+document.addEventListener("keydown",function(e){
+  if(e.key!=="Enter")return;
+  if(!done)check();else if(!$("nxt").disabled)newQ();
+});
+var mono=false;
+$("tg").onclick=function(){mono=!mono;document.body.classList.toggle("mono",mono);$("tg").textContent=mono?"⚫ 바늘 색깔 꺼짐":"🎨 바늘 색깔 켜짐";$("lg").textContent=mono?"짧고 굵은 바늘 = 시 · 길고 가는 바늘 = 분":"🍫 초코 빼빼로(짧은 바늘) = 시 · 🍓 딸기 빼빼로(긴 바늘) = 분"};
+renderLevels();newQ();
+})();
+</script>
+</body>
+</html>

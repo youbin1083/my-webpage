@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>연산 퀘스트</title>
+<style>
+:root{--bg:#f4f1ff;--card:#fff;--tx:#25203d;--mu:#6e6890;--pr:#6c4bf4;--pr2:#ff7ab6;--ok:#22b573;--no:#ef4565;--bd:#e3ddff;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root{--bg:#17142b;--card:#231f3f;--tx:#f1eeff;--mu:#a9a3cf;--bd:#383260;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{margin:0}body{background:var(--bg);color:var(--tx);font-family:"Pretendard","Noto Sans KR",system-ui,sans-serif;min-height:100vh}
+main{max-width:640px;margin:0 auto;padding:16px 16px 92px}
+.card{background:var(--card);border:2px solid var(--bd);border-radius:20px;padding:16px;margin-bottom:14px}
+h2{margin:0 0 10px;font-size:1.1rem}
+.hero{display:flex;gap:14px;align-items:center}
+.av{font-size:3.4rem;width:84px;height:84px;display:grid;place-items:center;background:linear-gradient(135deg,var(--pr),var(--pr2));border-radius:24px;flex:none}
+.grow{flex:1;min-width:0}.lv{font-weight:800;font-size:1.2rem}
+.bar{height:12px;background:var(--bd);border-radius:9px;overflow:hidden;margin:6px 0}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pr),var(--pr2));border-radius:9px;transition:width .3s}
+.mu{color:var(--mu);font-size:.85rem}
+.chips,.seg{display:flex;gap:8px;flex-wrap:wrap}
+.chip,.seg button{flex:1;min-width:64px;padding:10px 6px;border-radius:14px;border:2px solid var(--bd);background:transparent;color:var(--tx);font:inherit;font-weight:700;cursor:pointer}
+.chip.on,.seg button.on{background:var(--pr);border-color:var(--pr);color:#fff}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode{padding:16px 10px;border-radius:18px;border:0;color:#fff;font:inherit;font-weight:800;cursor:pointer;text-align:left;line-height:1.35}
+.mode small{display:block;font-weight:500;opacity:.9}
+.mode:active,.btn:active{transform:scale(.97)}
+.m1{background:linear-gradient(135deg,#ff6b6b,#ff9a5a)}.m2{background:linear-gradient(135deg,#22b5a0,#4fd1a5)}.m3{background:linear-gradient(135deg,#6c4bf4,#9a7bff)}.m4{background:linear-gradient(135deg,#f0a020,#ff6fa8)}
+.btn{padding:14px 18px;border:0;border-radius:16px;background:var(--pr);color:#fff;font:inherit;font-weight:800;font-size:1rem;cursor:pointer}
+.btn.g{background:transparent;color:var(--tx);border:2px solid var(--bd)}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:6px;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:2px solid var(--bd)}
+nav button{flex:1;max-width:200px;border:0;background:transparent;color:var(--mu);font:inherit;font-weight:700;padding:8px;border-radius:12px;cursor:pointer}nav button.on{background:var(--bd);color:var(--tx)}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:800}
+.q{position:relative;text-align:center;padding:30px 10px;overflow:hidden}
+.qt{font-size:clamp(2rem,9vw,3.4rem);font-weight:900;letter-spacing:1px}
+.q.ok{animation:pop .35s;border-color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,var(--card))}
+.q.no{animation:shake .4s;border-color:var(--no);background:color-mix(in srgb,var(--no) 15%,var(--card))}
+@keyframes pop{50%{transform:scale(1.04)}}@keyframes shake{25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+#ans{width:100%;font:inherit;font-size:2rem;font-weight:800;text-align:center;padding:12px;border-radius:16px;border:2px solid var(--bd);background:var(--bg);color:var(--tx);margin:14px 0 10px}
+#fb{min-height:1.5em;font-weight:800;color:var(--no);margin-top:6px}
+.fly{position:absolute;left:50%;top:20%;transform:translateX(-50%);font-weight:900;color:var(--ok);animation:fly 1s forwards;pointer-events:none}
+@keyframes fly{to{top:-10%;opacity:0}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.it{text-align:center;padding:12px 6px;border-radius:16px;border:2px solid var(--bd);font-size:.78rem;background:transparent;color:var(--tx);font-family:inherit}
+.it b{display:block;font-size:2rem}.it.lock{filter:grayscale(1);opacity:.45}.it.sel{border-color:var(--pr);background:var(--bd)}
+.sr{display:grid;grid-template-columns:70px 1fr 36px;gap:8px;align-items:center;margin:6px 0;font-weight:700;font-size:.9rem}
+svg{width:100%;max-width:380px;display:block;margin:0 auto}
+#toasts{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:20;display:flex;flex-direction:column;gap:6px;width:min(92vw,420px)}
+.toast{background:var(--pr);color:#fff;padding:10px 14px;border-radius:14px;font-weight:700;text-align:center;animation:pop .35s}
+.cf{position:fixed;top:-30px;font-size:1.6rem;z-index:15;animation:fall 2s forwards;pointer-events:none}
+@keyframes fall{to{transform:translateY(105vh) rotate(540deg)}}
+.big{font-size:3rem;text-align:center}.rs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}.rs b{display:block;font-size:1.5rem}
+</style></head><body>
+<div id="toasts"></div>
+<main>
+<section id="home" class="scr">
+ <div class="card hero"><div class="av" id="hav"></div><div class="grow"><div class="lv" id="hlv"></div><div class="bar"><i id="hxp"></i></div><div class="mu" id="hxt"></div></div></div>
+ <div class="card"><h2>연산 선택</h2><div class="chips" id="opc"></div><h2 style="margin-top:14px">난이도</h2><div class="seg" id="dfc"></div></div>
+ <div class="modes">
+  <button class="mode m1" onclick="start('time')">⏱️ 타임어택<small>60초 안에 최대한 많이!</small></button>
+  <button class="mode m2" onclick="start('free')">♾️ 무한모드<small>시간 제한 없이 연습</small></button>
+  <button class="mode m3" onclick="start('chal')">🏆 챌린지<small>10문제 연속 정답 시 레벨업</small></button>
+  <button class="mode m4" onclick="start('master')">👑 마스터전<small>혼합 연산 5문제 클리어</small></button>
+ </div>
+</section>
+<section id="game" class="scr" hidden>
+ <div class="card"><div class="hud"><span id="mn"></span><span id="h1"></span><span id="h2"></span></div><div class="bar"><i id="gb"></i></div></div>
+ <div class="card q" id="qc"><div class="qt" id="qt"></div>
+  <input id="ans" type="text" inputmode="numeric" pattern="-?[0-9]*" autocomplete="off" placeholder="정답 입력">
+  <button class="btn" style="width:100%" onclick="submit()">확인 (Enter)</button><div id="fb"></div></div>
+ <button class="btn g" style="width:100%" onclick="end('quit')">그만하기</button>
+</section>
+<section id="res" class="scr" hidden>
+ <div class="card"><div class="big" id="rt"></div><h2 id="rh" style="text-align:center"></h2>
+  <div class="rs"><div><b id="rc"></b>정답</div><div><b id="rw"></b>오답</div><div><b id="rx"></b>획득 XP</div></div><div id="rb" style="margin-top:12px"></div></div>
+ <div style="display:flex;gap:10px"><button class="btn" style="flex:1" onclick="start(G.m)">다시 하기</button><button class="btn g" style="flex:1" onclick="show('home')">홈으로</button></div>
+</section>
+<section id="stats" class="scr" hidden>
+ <div class="card"><h2>🧙 내 캐릭터 능력치</h2><div id="cls" style="font-weight:800;margin-bottom:6px"></div><div id="rad"></div><div id="sbars"></div></div>
+ <div class="card"><h2>📊 요약</h2><div id="sum"></div></div>
+ <button class="btn g" style="width:100%" onclick="resetAll()">데이터 초기화</button>
+</section>
+<section id="coll" class="scr" hidden>
+ <div class="card"><h2>🏅 업적 배지</h2><div class="grid" id="bg"></div></div>
+ <div class="card"><h2>🎭 캐릭터 도감 <span class="mu">(눌러서 선택)</span></h2><div class="grid" id="cg"></div></div>
+</section>
+</main>
+<nav id="nav"><button data-t="home" onclick="show('home')">🏠 홈</button><button data-t="stats" onclick="show('stats')">📊 능력치</button><button data-t="coll" onclick="show('coll')">🏅 도감</button></nav>
+<script>
+const $=i=>document.getElementById(i),r=(a,b)=>Math.floor(Math.random()*(b-a+1))+a,cl=(x,a,b)=>Math.max(a,Math.min(b,x));
+const K='mathquest_v1',OPS=['＋','－','×','÷'],ON=['덧셈','뺄셈','곱셈','나눗셈'];
+const DF=[{n:'초급',m:10,x:9},{n:'중급',m:50,x:15},{n:'고급',m:100,x:25}];
+const CH=[{e:'🐣',n:'병아리'},{e:'🐱',n:'수학냥'},{e:'🦊',n:'연산여우'},{e:'🐯',n:'번개호랑이'},{e:'🐼',n:'스피드판다'},{e:'🦁',n:'챌린지사자'},{e:'🐲',n:'마스터용'},{e:'🦄',n:'별빛유니콘'},{e:'🤖',n:'계산로봇'}];
+const BD=[
+{id:'a',e:'🌱',n:'첫걸음',d:'첫 정답 맞히기',c:s=>s.tc>=1},
+{id:'b',e:'🔥',n:'불꽃 콤보',d:'5연속 정답',c:s=>s.best>=5},
+{id:'c',e:'⚡',n:'번개 콤보',d:'15연속 정답',c:s=>s.best>=15},
+{id:'d',e:'⏱️',n:'스피드러너',d:'타임어택 20문제',c:s=>s.taBest>=20},
+{id:'e',e:'🏆',n:'챌린저',d:'챌린지 클리어',c:s=>s.chClear>=1},
+{id:'f',e:'👑',n:'마스터',d:'마스터전 클리어',c:s=>s.maClear>=1},
+{id:'g',e:'⭐',n:'레벨 5',d:'플레이어 Lv.5 달성',c:s=>s.lv>=5},
+{id:'h',e:'💯',n:'연산왕',d:'누적 정답 300개',c:s=>s.tc>=300}];
+const def=()=>({xp:0,lv:1,tc:0,tt:0,best:0,sec:0,secN:0,taBest:0,chClear:0,chLv:0,maClear:0,ops:[0,1,2,3].map(()=>({t:0,c:0,ms:0})),badges:[],ch:0,sel:[true,true,true,true],diff:0});
+let S,G=null;
+try{S=Object.assign(def(),JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){S=def()}
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+const need=l=>40+l*20,unl=i=>i===0||S.badges.includes(BD[i-1].id);
+
+function show(id){document.querySelectorAll('.scr').forEach(e=>e.hidden=e.id!==id);document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===id));$('nav').hidden=id==='game'||id==='res';
+ ({home:renderHome,stats:renderStats,coll:renderColl})[id]?.();scrollTo(0,0)}
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;$('toasts').append(d);setTimeout(()=>d.remove(),3200)}
+function confetti(){for(let i=0;i<28;i++){const s=document.createElement('span');s.className='cf';s.textContent=['🎉','⭐','✨','🎊'][i%4];s.style.left=r(2,95)+'vw';s.style.animationDelay=(Math.random()*.6)+'s';document.body.append(s);setTimeout(()=>s.remove(),2800)}}
+
+function renderHome(){
+ $('hav').textContent=CH[S.ch].e;$('hlv').textContent=`Lv.${S.lv} ${CH[S.ch].n}`;
+ $('hxp').style.width=S.xp/need(S.lv)*100+'%';$('hxt').textContent=`경험치 ${S.xp} / ${need(S.lv)}`;
+ $('opc').innerHTML=OPS.map((o,i)=>`<button class="chip ${S.sel[i]?'on':''}" onclick="S.sel[${i}]=!S.sel[${i}];save();renderHome()">${o} ${ON[i]}</button>`).join('');
+ $('dfc').innerHTML=DF.map((d,i)=>`<button class="${S.diff===i?'on':''}" onclick="S.diff=${i};save();renderHome()">${d.n}<br><small>1~${d.m}</small></button>`).join('')}
+
+function gen(){
+ if(G.m==='master'){const t=r(1,5);let a,b,c;
+  if(t===1){a=r(2,9);b=r(2,9);c=r(1,30);return{t:`${a} × ${b} + ${c}`,a:a*b+c,op:4}}
+  if(t===2){a=r(2,20);b=r(2,20);c=r(2,9);return{t:`(${a} + ${b}) × ${c}`,a:(a+b)*c,op:4}}
+  if(t===3){b=r(2,9);c=r(2,12);a=r(1,30);return{t:`${b*c} ÷ ${b} + ${a}`,a:c+a,op:4}}
+  if(t===4){a=r(2,9);b=r(2,9);c=r(1,a*b-1);return{t:`${a} × ${b} − ${c}`,a:a*b-c,op:4}}
+  a=r(20,99);b=r(10,a-1);c=r(2,9);return{t:`(${a} − ${b}) × ${c}`,a:(a-b)*c,op:4}}
+ const op=G.ops[r(0,G.ops.length-1)],d=DF[G.d];let a,b;
+ if(op===0){a=r(1,d.m);b=r(1,d.m);return{t:`${a} + ${b}`,a:a+b,op}}
+ if(op===1){a=r(1,d.m);b=r(1,d.m);if(b>a)[a,b]=[b,a];return{t:`${a} − ${b}`,a:a-b,op}}
+ if(op===2){a=r(1,d.x);b=r(1,d.x);return{t:`${a} × ${b}`,a:a*b,op}}
+ b=r(2,Math.max(2,d.x));const c=r(1,d.x);return{t:`${b*c} ÷ ${b}`,a:c,op}}
+
+function start(m){
+ const ops=S.sel.map((x,i)=>x?i:-1).filter(i=>i>=0);
+ if(!ops.length&&m!=='master'){toast('연산을 하나 이상 선택해 주세요');return}
+ if(G)clearInterval(G.tm);
+ G={m,ops,d:S.diff,streak:0,c:0,w:0,xp:0,lives:3,left:60,lock:false,over:false,nb:[]};
+ show('game');$('mn').textContent={time:'⏱️ 타임어택',free:'♾️ 무한모드',chal:'🏆 챌린지',master:'👑 마스터전'}[m];
+ if(m==='time')G.tm=setInterval(()=>{G.left--;hud();if(G.left<=0)end('time')},1000);
+ next();hud()}
+function hud(){
+ const m=G.m;$('h1').textContent=m==='time'?`⏳ ${G.left}초 · 정답 ${G.c}`:m==='free'?`정답 ${G.c} · 오답 ${G.w}`:m==='chal'?`연속 ${G.streak}/10 · Lv.${S.chLv+1}`:`${'❤️'.repeat(G.lives)}${'🖤'.repeat(3-G.lives)} · ${G.c}/5`;
+ $('h2').textContent=G.streak>=2?`🔥 ${G.streak}콤보`:'';
+ $('gb').style.width=(m==='time'?G.left/60:m==='chal'?G.streak/10:m==='master'?G.c/5:0)*100+'%'}
+function next(){G.q=gen();$('qt').textContent=G.q.t+' = ?';const a=$('ans');a.value='';a.disabled=false;G.qs=Date.now();G.lock=false;$('fb').textContent='';$('qc').className='card q';a.focus()}
+function flash(k){const q=$('qc');q.className='card q';void q.offsetWidth;q.className='card q '+k}
+function fly(t){const d=document.createElement('div');d.className='fly';d.textContent=t;$('qc').append(d);setTimeout(()=>d.remove(),1000)}
+function gain(g){S.xp+=g;G.xp+=g;while(S.xp>=need(S.lv)){S.xp-=need(S.lv);S.lv++;confetti();toast('🎉 레벨 업! Lv.'+S.lv)}}
+function checkB(){BD.forEach((b,i)=>{if(!S.badges.includes(b.id)&&b.c(S)){S.badges.push(b.id);G&&G.nb.push(i);toast(`🏅 ${b.n} 배지 획득! 새 캐릭터 ${CH[i+1].e} ${CH[i+1].n} 해금`);confetti()}})}
+
+function submit(){
+ if(!G||G.lock||G.over)return;const v=$('ans').value.trim();if(v==='')return;
+ G.lock=true;$('ans').disabled=true;const ok=Number(v)===G.q.a,dt=(Date.now()-G.qs)/1000,o=G.q.op<4?S.ops[G.q.op]:null;
+ S.tt++;o&&o.t++;
+ if(ok){S.tc++;S.sec+=dt;S.secN++;if(o){o.c++;o.ms+=dt*1000}G.c++;G.streak++;S.best=Math.max(S.best,G.streak);
+  let g=10+G.d*5+(G.streak>=3?Math.min((G.streak-2)*3,30):0);if(G.m==='master')g*=2;gain(g);flash('ok');fly('+'+g+' XP'+(G.streak>=3?' 🔥':''))}
+ else{G.w++;G.streak=0;if(G.m==='master')G.lives--;flash('no');$('fb').textContent='정답은 '+G.q.a}
+ checkB();hud();save();
+ if(G.m==='chal'&&G.streak>=10){setTimeout(()=>end('clear'),500);return}
+ if(G.m==='master'&&(G.c>=5||G.lives<=0)){setTimeout(()=>end(G.c>=5?'clear':'fail'),700);return}
+ setTimeout(()=>{if(G&&!G.over&&G.m!=='x')next()},ok?350:1000)}
+$('ans').addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
+
+function end(res){
+ if(!G||G.over)return;G.over=true;clearInterval(G.tm);
+ if(res==='clear'){if(G.m==='chal'){S.chClear++;S.chLv++;gain(50)}else if(G.m==='master'){S.maClear++;gain(100)}}
+ if(G.m==='time')S.taBest=Math.max(S.taBest,G.c);
+ checkB();save();
+ $('rt').textContent={clear:'🎉',fail:'😢',time:'⏱️',quit:'👏'}[res];
+ $('rh').textContent={clear:G.m==='chal'?`챌린지 레벨 업! Lv.${S.chLv+1} 도전 가능`:'마스터전 클리어!',fail:'아쉬워요, 다시 도전!',time:'시간 종료!',quit:'수고했어요!'}[res];
+ $('rc').textContent=G.c;$('rw').textContent=G.w;$('rx').textContent='+'+G.xp;
+ $('rb').innerHTML=G.nb.map(i=>`<div class="toast" style="margin-top:6px">${BD[i].e} ${BD[i].n} · ${CH[i+1].e} ${CH[i+1].n} 해금</div>`).join('');
+ show('res')}
+
+const pw=i=>{const o=S.ops[i];if(!o.t)return 0;const avg=o.c?o.ms/o.c/1000:10;return Math.round(o.c/o.t*80+cl(100-(avg-2)*12,0,100)*.2)};
+const spd=()=>S.secN?Math.round(cl(100-(S.sec/S.secN-2)*12,0,100)):0;
+function radar(v,L){const cx=170,cy=150,R=95,pt=(i,k)=>{const a=-Math.PI/2+i*Math.PI/3;return[cx+R*k*Math.cos(a),cy+R*k*Math.sin(a)]};let g='';
+ [.25,.5,.75,1].forEach(k=>g+=`<polygon points="${L.map((_,i)=>pt(i,k).join(',')).join(' ')}" fill="none" stroke="var(--bd)"/>`);
+ L.forEach((l,i)=>{const[x,y]=pt(i,1.28);g+=`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="var(--tx)">${l}</text>`});
+ g+=`<polygon points="${v.map((x,i)=>pt(i,x/100).join(',')).join(' ')}" fill="var(--pr)" fill-opacity=".35" stroke="var(--pr)" stroke-width="2.5"/>`;
+ return`<svg viewBox="0 0 340 300">${g}</svg>`}
+function renderStats(){
+ const p=[0,1,2,3].map(pw),sp=spd(),en=Math.round(Math.min(100,S.best*5)),ti=['덧셈 마법사','뺄셈 닌자','곱셈 전사','나눗셈 궁수'];
+ const ok=[0,1,2,3].filter(i=>S.ops[i].t>=5),top=ok.sort((a,b)=>p[b]-p[a]);
+ $('cls').textContent=`${CH[S.ch].e} Lv.${S.lv} ${top.length?ti[top[0]]:'수련생'}`;
+ $('rad').innerHTML=radar([...p,sp,en],['➕덧셈','➖뺄셈','✖️곱셈','➗나눗셈','⚡속도','🛡️지구력']);
+ const rows=[...ON.map((n,i)=>[n,p[i]]),['속도',sp],['지구력',en]];
+ $('sbars').innerHTML=rows.map(([n,v])=>`<div class="sr"><span>${n}</span><div class="bar"><i style="width:${v}%"></i></div><span>${v}</span></div>`).join('')+
+  (top.length?`<p>💪 강점: <b>${ON[top[0]]}</b>${top.length>1?` · 🌱 보완할 약점: <b>${ON[top[top.length-1]]}</b>`:''}</p>`:'<p class="mu">연산별로 5문제 이상 풀면 강점과 약점이 나타나요.</p>');
+ $('sum').innerHTML=`<div class="rs"><div><b>${S.tc}</b>누적 정답</div><div><b>${S.tt?Math.round(S.tc/S.tt*100):0}%</b>정확도</div><div><b>${S.best}</b>최고 콤보</div></div>
+ <div class="rs" style="margin-top:10px"><div><b>${S.taBest}</b>타임어택 최고</div><div><b>${S.chClear}</b>챌린지 클리어</div><div><b>${S.maClear}</b>마스터 클리어</div></div>`}
+function renderColl(){
+ $('bg').innerHTML=BD.map(b=>`<div class="it ${S.badges.includes(b.id)?'':'lock'}"><b>${b.e}</b>${b.n}<br><span class="mu">${b.d}</span></div>`).join('');
+ $('cg').innerHTML=CH.map((c,i)=>`<button class="it ${unl(i)?'':'lock'} ${S.ch===i?'sel':''}" ${unl(i)?`onclick="S.ch=${i};save();renderColl()"`:'disabled'}><b>${unl(i)?c.e:'🔒'}</b>${c.n}<br><span class="mu">${i?BD[i-1].n+' 배지':'기본'}</span></button>`).join('')}
+function resetAll(){if(confirm('모든 기록(경험치·배지·캐릭터·통계)이 삭제됩니다. 초기화할까요?')){S=def();save();show('home')}}
+show('home');
+</script></body></html>
